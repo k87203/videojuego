@@ -23,4 +23,59 @@ PASS: Labels get an outline for legibility
 PASS: HUD shows vector icons (9)
 PASS: Heart icons track health
 PASS: Pause menu keeps keyboard focus on the themed primary action
-MEJORAS RESULT: 23 checks, 0 failures
+PASS: Level 1 streams every kind of its roster (missing: [])
+PASS: Level 2 streams every kind of its roster (missing: [])
+PASS: Level 3 streams every kind of its roster (missing: [])
+PASS: Level 4 streams every kind of its roster (missing: [])
+PASS: All six new archetypes appear in the campaign
+PASS: Advanced archetypes stay out of the early levels
+PASS: New archetypes enter after their introduction district
+PASS: Examen Sorpresa has its own hitbox (34.0, 38.0)
+PASS: hopper shows a warning at least 0.3 s before attacking (22 frames)
+PASS: El Profe de Cálculo has its own hitbox (40.0, 72.0)
+PASS: calc shows a warning at least 0.3 s before attacking (38 frames)
+PASS: La Revisión de Tarea has its own hitbox (52.0, 44.0)
+PASS: review shows a warning at least 0.3 s before attacking (34 frames)
+PASS: El Maestro de Programación has its own hitbox (44.0, 64.0)
+PASS: coder shows a warning at least 0.3 s before attacking (34 frames)
+PASS: El Borrador has its own hitbox (44.0, 34.0)
+PASS: dropper shows a warning at least 0.3 s before attacking (28 frames)
+PASS: La Carpeta Blindada has its own hitbox (46.0, 54.0)
+PASS: shield shows a warning at least 0.3 s before attacking (28 frames)
+PASS: Original archetypes keep their 0.4 hitbox and life
+PASS: La Carpeta Blindada blocks backpack swings
+PASS: La Carpeta Blindada falls to a stomp
+PASS: A hanging eraser is out of reach
+PASS: The eraser drops onto the floor below and stays dazed
+PASS: A dazed eraser can be defeated
+PASS: El Profe de Cálculo needs two hits
+PASS: Second hit defeats El Profe de Cálculo
+PASS: Integral follows its previewed arc onto a standing student (closest 25 px)
+PASS: Bugs crawl along the floor
+PASS: A swing smashes an incoming bug before it bites
+PASS: Bugs fall off ledges instead of floating
+PASS: alex beats hopper with normal health (1.3 s, 0 hits taken)
+PASS: alex beats calc with normal health (1.7 s, 0 hits taken)
+PASS: alex beats review with normal health (1.8 s, 0 hits taken)
+PASS: alex beats coder with normal health (2.3 s, 0 hits taken)
+PASS: alex beats dropper with normal health (2.3 s, 0 hits taken)
+PASS: alex beats shield with normal health (2.0 s, 1 hits taken)
+PASS: valeria beats hopper with normal health (1.1 s, 0 hits taken)
+PASS: valeria beats calc with normal health (1.6 s, 0 hits taken)
+PASS: valeria beats review with normal health (1.8 s, 0 hits taken)
+PASS: valeria beats coder with normal health (1.8 s, 0 hits taken)
+PASS: valeria beats dropper with normal health (2.1 s, 0 hits taken)
+PASS: valeria beats shield with normal health (2.0 s, 1 hits taken)
+PASS: diego beats hopper with normal health (1.4 s, 0 hits taken)
+PASS: diego beats calc with normal health (1.8 s, 0 hits taken)
+PASS: diego beats review with normal health (1.6 s, 0 hits taken)
+PASS: diego beats coder with normal health (2.4 s, 0 hits taken)
+PASS: diego beats dropper with normal health (2.4 s, 0 hits taken)
+PASS: diego beats shield with normal health (2.5 s, 0 hits taken)
+PASS: sofia beats hopper with normal health (1.2 s, 0 hits taken)
+PASS: sofia beats calc with normal health (1.6 s, 0 hits taken)
+PASS: sofia beats review with normal health (1.6 s, 1 hits taken)
+PASS: sofia beats coder with normal health (2.3 s, 0 hits taken)
+PASS: sofia beats dropper with normal health (2.2 s, 0 hits taken)
+PASS: sofia beats shield with normal health (2.5 s, 1 hits taken)
+MEJORAS RESULT: 78 checks, 0 failures

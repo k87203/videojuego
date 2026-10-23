@@ -30,6 +30,11 @@ func run() -> void:
 	await stage1_motion()
 	await stage1_hitstop()
 	await stage1_interface()
+	await stage2_roster()
+	await stage2_telegraphs()
+	await stage2_damage_rules()
+	await stage2_projectiles()
+	await stage2_duels()
 	print("MEJORAS RESULT: %d checks, %d failures" % [checks, failures.size()])
 	var report := FileAccess.open("res://docs/mejoras-results.txt", FileAccess.WRITE)
 	if report: report.store_string("%d checks; %d failures\n%s\n" % [checks, failures.size(), "\n".join(failures)])
@@ -202,3 +207,263 @@ func stage1_interface() -> void:
 		if child is Button and child.text == "Seguir aventura": resume = child
 	check(resume != null and resume.has_focus() and resume.theme_type_variation == &"PrimaryButton", "Pause menu keeps keyboard focus on the themed primary action")
 	app.resume_game()
+
+# ---------- Stage 2: enemy variety ----------
+const Data = preload("res://scripts/expansion_data.gd")
+const NEW_KINDS := ["hopper", "calc", "review", "coder", "dropper", "shield"]
+
+func clear_combat() -> void:
+	for group in ["enemies", "projectiles"]:
+		for node in get_tree().get_nodes_in_group(group): node.queue_free()
+	await ticks(2)
+
+func arena(character: String = "alex"):
+	release()
+	Progress.data.character = character
+	Progress.data.double_jump = true
+	app.start_level(3)
+	await ticks(3)
+	var w = app.world
+	w.set_process(false)
+	w.extension.set_process(false)
+	w.eagle.help_timer = 999
+	w.platform(Vector2(50000, 610), Vector2(2400, 220), true)
+	await clear_combat()
+	w.player.position = Vector2(50600, 610)
+	w.player.velocity = Vector2.ZERO
+	w.player.camera.reset_smoothing()
+	await ticks(3)
+	return w
+
+func stage2_roster() -> void:
+	var first_seen := {}
+	for level in [1, 2, 3, 4]:
+		release()
+		app.start_level(level)
+		await ticks(2)
+		var w = app.world
+		w.set_process(false)
+		w.extension.set_process(false)
+		var kinds := {}
+		for index in range(0, Data.COUNT * Data.CHUNKS_PER_DISTRICT, 3):
+			w.extension.sync_chunks(Data.START + index * Data.CHUNK + 10)
+			await ticks(1)
+			for e in get_tree().get_nodes_in_group("enemies"):
+				if e.is_queued_for_deletion() or e.home.x < Data.START: continue
+				kinds[e.kind] = true
+				var key := "%d_%s" % [level, e.kind]
+				if not first_seen.has(key) or e.home.x < first_seen[key]: first_seen[key] = e.home.x
+		var missing: Array = []
+		for entry in Data.ENEMY_ROSTER[level]:
+			if not kinds.has(entry[1]): missing.append(entry[1])
+		check(missing.is_empty(), "Level %d streams every kind of its roster (missing: %s)" % [level, str(missing)])
+	var all_new := true
+	for kind in NEW_KINDS:
+		var appears := false
+		for level in [1, 2, 3, 4]:
+			if first_seen.has("%d_%s" % [level, kind]): appears = true
+		if not appears: all_new = false
+	check(all_new, "All six new archetypes appear in the campaign")
+	check(not first_seen.has("1_review") and not first_seen.has("1_coder") and not first_seen.has("1_shield") and not first_seen.has("2_coder") and not first_seen.has("2_shield"), "Advanced archetypes stay out of the early levels")
+	check(first_seen.get("1_calc", 0.0) >= Data.START + 8 * Data.DISTRICT and first_seen.get("3_shield", 0.0) >= Data.START + 7 * Data.DISTRICT, "New archetypes enter after their introduction district")
+
+func stage2_telegraphs() -> void:
+	var w = await arena()
+	var p = w.player
+	p.invulnerable = 999
+	var spots := {"hopper": Vector2(50760, 610), "calc": Vector2(50900, 610), "review": Vector2(50850, 610), "coder": Vector2(50900, 610), "dropper": Vector2(50600, 330), "shield": Vector2(50720, 610)}
+	for kind in spots:
+		await clear_combat()
+		p.position = Vector2(50600, 610)
+		var e = w.spawn_enemy(kind, spots[kind])
+		await ticks(1)
+		var shape: RectangleShape2D = e.get_child(0).shape
+		check(shape.size == e.spec.size and e.spec.size != Vector2(36, 43), "%s has its own hitbox %s" % [e.spec.name, str(e.spec.size)])
+		var warned := -1
+		var released := -1
+		for f in 420:
+			await get_tree().physics_frame
+			if not is_instance_valid(e): break
+			if e.windup > 0 and warned < 0: warned = f
+			if e.attacks_released > 0:
+				released = f
+				break
+		check(warned >= 0 and released > warned and released - warned >= 18, "%s shows a warning at least 0.3 s before attacking (%d frames)" % [kind, released - warned])
+	await clear_combat()
+	var old = w.spawn_enemy("task", Vector2(50700, 610))
+	await ticks(1)
+	check(old.get_child(0).shape.size == Vector2(36, 43) and old.life == 1, "Original archetypes keep their 0.4 hitbox and life")
+
+func swing_now(p) -> void:
+	while p.attack_cooldown > 0: await ticks(1)
+	Input.action_press("attack")
+	await ticks(2)
+	Input.action_release("attack")
+	await ticks(12)
+
+func stage2_damage_rules() -> void:
+	var w = await arena()
+	var p = w.player
+	p.invulnerable = 999
+	p.facing = 1
+	var e = w.spawn_enemy("shield", Vector2(50660, 610))
+	await ticks(2)
+	e.set_physics_process(false)
+	await swing_now(p)
+	check(is_instance_valid(e) and not e.dead and e.blocks > 0, "La Carpeta Blindada blocks backpack swings")
+	e.set_physics_process(true)
+	p.position = Vector2(e.position.x, 470)
+	p.velocity = Vector2(0, 300)
+	await ticks(20)
+	check(not is_instance_valid(e) or e.dead, "La Carpeta Blindada falls to a stomp")
+	await clear_combat()
+	p.position = Vector2(50600, 610)
+	p.facing = 1
+	var eraser = w.spawn_enemy("dropper", Vector2(50640, 330))
+	await ticks(1)
+	await swing_now(p)
+	check(is_instance_valid(eraser) and eraser.life == 1, "A hanging eraser is out of reach")
+	p.position.x = 50560
+	for f in 120:
+		await ticks(1)
+		if eraser.drop_state == "dazed": break
+	check(eraser.drop_state == "dazed" and absf(eraser.position.y - 610) < 4, "The eraser drops onto the floor below and stays dazed")
+	await swing_now(p)
+	check(not is_instance_valid(eraser) or eraser.dead, "A dazed eraser can be defeated")
+	await clear_combat()
+	p.position = Vector2(50600, 610)
+	var calc = w.spawn_enemy("calc", Vector2(50660, 610))
+	await ticks(2)
+	calc.set_physics_process(false)
+	await swing_now(p)
+	check(calc.life == 1, "El Profe de Cálculo needs two hits")
+	calc.stun = 0
+	await swing_now(p)
+	check(not is_instance_valid(calc) or calc.dead, "Second hit defeats El Profe de Cálculo")
+
+func stage2_projectiles() -> void:
+	var w = await arena()
+	var p = w.player
+	p.invulnerable = 999
+	w.spawn_enemy("calc", Vector2(50950, 610))
+	var closest := INF
+	var tracked = null
+	for f in 360:
+		await get_tree().physics_frame
+		if tracked == null:
+			for shot in get_tree().get_nodes_in_group("projectiles"):
+				if shot.glyph == "∫": tracked = shot
+		if tracked != null:
+			if not is_instance_valid(tracked): break
+			closest = minf(closest, tracked.position.distance_to(p.position + Vector2(0, -24)))
+	check(closest < 32, "Integral follows its previewed arc onto a standing student (closest %.0f px)" % closest)
+	await clear_combat()
+	p.position = Vector2(50600, 610)
+	p.facing = 1
+	p.invulnerable = 0
+	var health: int = p.health
+	var coder = w.spawn_enemy("coder", Vector2(51000, 610))
+	# A freed Object compares equal to null in Godot 4, so detection uses its own flag.
+	var bug = null
+	var found_bug := false
+	var level_y := 0.0
+	var steady := true
+	for f in 400:
+		await get_tree().physics_frame
+		if not found_bug:
+			for shot in get_tree().get_nodes_in_group("projectiles"):
+				if shot.glyph == "bug":
+					bug = shot
+					found_bug = true
+					level_y = shot.position.y
+		if found_bug and is_instance_valid(bug):
+			if absf(bug.position.y - level_y) > 1: steady = false
+			if bug.position.x - p.position.x < 70:
+				coder.set_physics_process(false)
+				await swing_now(p)
+				break
+	check(found_bug and steady, "Bugs crawl along the floor")
+	check(found_bug and not is_instance_valid(bug) and p.health == health, "A swing smashes an incoming bug before it bites")
+	await clear_combat()
+	w.fire(Vector2(52380, 602), Vector2(220, 0), Color("b6fa8d"), {"crawl": true, "glyph": "bug", "destructible": true})
+	await ticks(20)
+	var falling = get_tree().get_nodes_in_group("projectiles")
+	check(falling.is_empty() or falling[0].position.y > 615, "Bugs fall off ledges instead of floating")
+
+func stage2_duels() -> void:
+	var results := []
+	for character in ["alex", "valeria", "diego", "sofia"]:
+		for kind in NEW_KINDS:
+			var outcome: Dictionary = await duel(character, kind)
+			results.append(outcome)
+			check(outcome.won, "%s beats %s with normal health (%.1f s, %d hits taken)" % [character, kind, outcome.time, outcome.hits])
+	var log := FileAccess.open("res://docs/enemy-duels.txt", FileAccess.WRITE)
+	if log:
+		for r in results: log.store_line("%s vs %s: %s; time=%.1fs; hits=%d" % [r.character, r.kind, "PASS" if r.won else "FAIL", r.time, r.hits])
+
+func duel(character: String, kind: String) -> Dictionary:
+	var w = await arena(character)
+	var p = w.player
+	p.invulnerable = 0
+	var spot := Vector2(51000, 330) if kind == "dropper" else Vector2(51000, 610)
+	var e = w.spawn_enemy(kind, spot)
+	var damage_before: int = w.damage_taken
+	var jump_hold := 0
+	var attack_wait := 0
+	var won := false
+	var frames_used := 0
+	for f in 900:
+		await get_tree().physics_frame
+		frames_used = f
+		if not is_instance_valid(e) or e.dead:
+			won = true
+			break
+		if w.lives_lost > 0: break
+		var dx: float = e.position.x - p.position.x
+		var toward := signf(dx) if dx != 0 else 1.0
+		var want := 0.0
+		var jump := false
+		var attack := false
+		match kind:
+			"shield":
+				want = toward
+				jump = p.is_on_floor() and absf(dx) < 130
+			"dropper":
+				match e.drop_state:
+					"hang": want = toward if absf(dx) > 8 else 0.0
+					"warn", "fall": want = -toward if absf(dx) < 110 else 0.0
+					"dazed":
+						want = toward if absf(dx) > 50 else 0.0
+						attack = absf(dx) < 80
+			_:
+				want = toward if absf(dx) > 55 else 0.0
+				attack = absf(dx) < 85
+				if kind == "review" and e.windup > 0 and absf(dx) < 340: jump = p.is_on_floor()
+				for shot in get_tree().get_nodes_in_group("projectiles"):
+					var rel: Vector2 = shot.position - (p.position + Vector2(0, -20))
+					if shot.glyph == "bug" and absf(rel.x) < 120 and absf(rel.y) < 90 and signf(shot.velocity.x) == -signf(rel.x): jump = p.is_on_floor()
+		if attack and signf(dx) != p.facing: want = toward
+		if want > 0:
+			Input.action_release("left")
+			Input.action_press("right")
+		elif want < 0:
+			Input.action_release("right")
+			Input.action_press("left")
+		else:
+			Input.action_release("right")
+			Input.action_release("left")
+		if jump_hold > 0:
+			jump_hold -= 1
+			if jump_hold == 0: Input.action_release("jump")
+		elif jump:
+			Input.action_press("jump")
+			jump_hold = 18
+		attack_wait -= 1
+		if attack and attack_wait <= 0:
+			Input.action_press("attack")
+			attack_wait = 21
+		elif attack_wait == 19: Input.action_release("attack")
+	release()
+	var outcome := {"character": character, "kind": kind, "won": won and w.lives_lost == 0, "time": frames_used / 60.0, "hits": w.damage_taken - damage_before}
+	await clear_combat()
+	return outcome

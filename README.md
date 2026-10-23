@@ -23,6 +23,25 @@ Se trabaja por etapas en la rama `mejoras-0.5`; `main` conserva la 0.4.1 publica
 - **HUD con iconos vectoriales** (scripts/hud_icon.gd): corazones llenos/vacíos, vidas, créditos, USB, título, reloj de entrega y potenciadores activos (pluma, beca, café).
 - **Pruebas:** tests/mejoras_suite.gd (`.\tools\check.ps1 -Mejoras`). tests/pose_sheet.tscn genera docs/poses-05.png con las poses; necesita ventana, no headless.
 
+**Etapa 2 — Variedad de enemigos**
+
+Se reutilizan los cuatro enemigos existentes sin cambiar sus valores: Tarea (caminante), Virus (persecución y esquiva), Robot (embestidor por movimiento) y Reloj (volador ondulado que dispara). Sobre la misma máquina de estados de enemy.gd, ahora guiada por una tabla `SPECS` por tipo, se agregan seis arquetipos originales sin personas reales. Cada uno tiene silueta, animación, hitbox propia y un aviso visible de al menos 0.3 s antes de atacar:
+
+| Enemigo | Comportamiento | Aviso | Cómo vencerlo |
+|---|---|---|---|
+| Examen Sorpresa | saltarín periódico | se agacha con un arco rojo | golpe o pisotón |
+| El Profe de Cálculo | lanzador estático de integrales en arco | parábola punteada exacta y tiza en alto | 2 golpes |
+| La Revisión de Tarea | embestidor: se detiene y carga dejando hojas | línea roja al frente | 2 golpes; salta la carga |
+| El Maestro de Programación | suelta bugs que corren por el suelo y caen en los bordes | pantalla roja y suelo marcado | 2 golpes; los bugs se saltan o se rompen con J |
+| El Borrador | cuelga del techo y cae | tiembla y aparece su sombra roja en el suelo | golpearlo cuando queda aturdido |
+| La Carpeta Blindada | escudado | flecha «písame» | solo con pisotón; golpes y barridas se bloquean |
+
+- **Introducción gradual** (`ENEMY_ROSTER` en expansion_data.gd): nivel 1 Examen, Reloj y Profe de Cálculo; nivel 2 suma Revisión de Tarea y Borrador; nivel 3 suma Maestro de Programación y Carpeta Blindada; nivel 4 los mezcla todos. Aztli presenta cada arquetipo nuevo la primera vez que aparece. Las introducciones originales de cada nivel no cambian.
+- **Validador:** tools/check.py audita que cada tipo del reparto tenga especificación, dibujo y presentación de Aztli.
+- **Matriz de recorridos:** a los 32 tramos geométricos se suman 16 recorridos completos sin invulnerabilidad (4 estudiantes × 4 niveles), en docs/route-encounter-results.txt. La salud se restaura al entrar a cada tramo, así que una muerte señalaría un tramo imposible con salud llena. Resultado: 16 de 16; el peor tramo costó 2 corazones (Diego, el más lento, que tiene 4).
+- **Bot con control aéreo:** la matriz nueva destapó una caída de Valeria al foso de la introducción del nivel 3 (con café, a 528 px/s). Ya ocurría antes de esta etapa y no la causa ningún enemigo; la ruta nunca se había probado con Valeria. El bot mantenía → siempre; ahora, si no le quedan saltos y su punto de aterrizaje no tiene suelo, retrocede como lo haría un jugador. El verificador ejecuta los 16 recorridos aunque alguno falle y luego los reporta todos.
+- **Pruebas:** mejoras_suite.gd suma el reparto por nivel, los avisos, las hitbox, las reglas de daño, los proyectiles y 24 duelos (4 estudiantes × 6 arquetipos con salud normal), en docs/enemy-duels.txt. tests/enemy_sheet.tscn genera docs/enemigos-05.png.
+
 ## Correcciones de revisión (posteriores a la 0.4.1)
 
 Corrigen errores sin cambiar el balance ni la arquitectura. Respaldo previo: **backups/tecno-aventura-0.4.1-before-fixes.zip**; el estado publicado también está en git con la etiqueta **v0.4.1**.

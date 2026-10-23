@@ -14,6 +14,22 @@ const NAMES := [
 ]
 const RECIPES := ["terraces", "library", "moving", "sprint", "collapse", "garden", "pursuit", "bridges", "workshop", "sprint", "electric", "pursuit", "library", "collapse", "moving", "sprint", "garden", "mixed"]
 
+## Enemy roster per level as [first district, kind]; new archetypes arrive gradually.
+const ENEMY_ROSTER := {
+	1: [[0, "task"], [0, "hopper"], [3, "clock"], [8, "calc"]],
+	2: [[0, "task"], [0, "clock"], [0, "robot"], [0, "hopper"], [0, "calc"], [2, "review"], [8, "dropper"]],
+	3: [[0, "virus"], [0, "robot"], [0, "clock"], [0, "review"], [0, "dropper"], [2, "coder"], [7, "shield"]],
+	4: [[0, "task"], [0, "virus"], [0, "robot"], [0, "clock"], [0, "hopper"], [0, "calc"], [0, "review"], [0, "coder"], [0, "dropper"], [3, "shield"]],
+}
+## Spawn height by kind: flyers hover, the eraser hangs from the ceiling, the rest stand.
+const ENEMY_HEIGHT := {"clock": 410.0, "dropper": 250.0}
+
+static func enemy_kind(level: int, section: int, part: int) -> String:
+	var pool: Array = []
+	for entry in ENEMY_ROSTER[level]:
+		if section >= entry[0]: pool.append(entry[1])
+	return pool[(section + part + level - 1) % pool.size()]
+
 static func district_at(x: float) -> int:
 	return clampi(int(floor((x - START) / DISTRICT)), 0, COUNT - 1)
 

@@ -159,10 +159,10 @@ func build_chunk(index: int) -> void:
 			world.spawn_hazard(Vector2(x + 440, 610), 75 + (section % 3) * 12, world.level_id >= 3 or kind == "electric", chunk)
 			if section > 8: world.spawn_hazard(Vector2(x + 820, 610), 85, kind != "sprint", chunk)
 		if kind not in ["moving", "collapse"]:
-			var enemy_kind: String = ["task", "clock", "virus", "robot"][(section + part + world.level_id - 1) % 4]
+			var enemy_kind := Data.enemy_kind(world.level_id, section, part)
 			if kind == "pursuit": enemy_kind = "virus" if world.level_id >= 3 else "robot"
 			var enemy_x := x + 650 if floors.size() == 1 else x + 1050
-			var enemy_y := 410.0 if enemy_kind == "clock" else 610.0
+			var enemy_y: float = Data.ENEMY_HEIGHT.get(enemy_kind, 610.0)
 			var uid := stable(index, "enemy", 0)
 			if not world.defeated_ids.has(uid):
 				var enemy = world.spawn_enemy(enemy_kind, Vector2(enemy_x, enemy_y))

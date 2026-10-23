@@ -36,6 +36,16 @@ var trials_completed: Dictionary = {}
 var defeated_ids: Dictionary = {}
 ## Hearts, coffee and scholarships taken during this run; saved with the checkpoint.
 var consumed_ids: Dictionary = {}
+## Aztli introduces each new archetype the first time it comes into view.
+const ENEMY_TIPS := {
+	"hopper": "¡Un Examen Sorpresa! Se agacha antes de cada salto: aléjate o písalo al caer.",
+	"calc": "El Profe de Cálculo lanza integrales en arco. La curva punteada marca dónde caerán.",
+	"review": "La Revisión de Tarea se detiene, marca una línea roja y embiste. ¡Salta por encima!",
+	"coder": "El Maestro de Programación suelta bugs que corren por el suelo. Sáltalos o rómpelos con J.",
+	"dropper": "Un Borrador cuelga del techo. Si tiembla y aparece una sombra roja, sigue corriendo.",
+	"shield": "La Carpeta Blindada bloquea golpes y barridas. ¡Solo cae si le saltas encima!",
+}
+var introduced: Dictionary = {}
 
 func _ready() -> void:
 	has_credential = "2_credential" in Progress.data.collected
@@ -229,13 +239,14 @@ func spawn_hazard(pos: Vector2, width: float, electric: bool, parent: Node = nul
 	if parent != null: parent.add_child(hazard)
 	else: add_child(hazard)
 
-func fire(pos: Vector2, velocity: Vector2, tint: Color) -> void:
+func fire(pos: Vector2, velocity: Vector2, tint: Color, options: Dictionary = {}) -> void:
 	var node := Area2D.new()
 	node.set_script(preload("res://scripts/projectile.gd"))
 	node.world = self
 	node.position = pos
 	node.velocity = velocity
 	node.tint = tint
+	for key in options: node.set(key, options[key])
 	node.add_to_group("projectiles")
 	add_child(node)
 
@@ -250,6 +261,11 @@ func player_attack() -> void:
 			if enemy.hit():
 				player.attack_hits[id] = true
 				player.on_hit_confirmed(enemy)
+	# Breakable shots (bugs) are destroyed by a swing in front of the student.
+	for shot in get_tree().get_nodes_in_group("projectiles"):
+		if shot.destructible and not shot.is_queued_for_deletion():
+			var reach: Vector2 = shot.position - (player.position + Vector2(0, -20))
+			if absf(reach.x) < 80 and absf(reach.y) < 50 and reach.x * player.facing > -18: shot.smash()
 	if is_instance_valid(boss) and not player.attack_hits.has(boss.get_instance_id()) and player.position.distance_to(boss.position) < 110:
 		if boss.hit():
 			player.attack_hits[boss.get_instance_id()] = true
@@ -293,6 +309,9 @@ func _process(delta: float) -> void:
 		for e in get_tree().get_nodes_in_group("enemies"):
 			e.set_physics_process(absf(e.position.x - player.position.x) < 1250 or e.state not in [e.State.IDLE, e.State.PATROL])
 			if e.state in [e.State.CHASE, e.State.ATTACK]: pursuing += 1
+			if ENEMY_TIPS.has(e.kind) and not introduced.has(e.kind) and absf(e.position.x - player.position.x) < 700:
+				introduced[e.kind] = true
+				say("AZTLI", ENEMY_TIPS[e.kind], 6)
 		var phase: int = boss.phase if is_instance_valid(boss) and boss.active else 0
 		MusicManager.context(extension.difficulty, extension.chase_active or pursuing >= 2, phase, extension.trial_active)
 
@@ -318,9 +337,7 @@ func respawn() -> void:
 	player.invulnerable = 2
 	player.camera.reset_smoothing()
 	for e in get_tree().get_nodes_in_group("enemies"):
-		e.position = e.home
-		e.velocity = Vector2.ZERO
-		e.change_state(e.State.IDLE)
+		e.reset_to_home()
 	for shot in get_tree().get_nodes_in_group("projectiles"): shot.queue_free()
 	arena_closed = false
 	if is_instance_valid(boss) and not boss.dead:
