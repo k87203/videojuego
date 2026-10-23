@@ -34,4 +34,7 @@ static func layout(level: int) -> Dictionary:
 	d["length"] = preload("res://scripts/expansion_data.gd").LENGTH
 	d["arena_x"] = d.length - 1000
 	d["exit"] = d.length - 240
+	# The arena gate closes behind the student; the combat sign stands just before it.
+	d["arena_gate_x"] = d.arena_x - 590
+	d["arena_sign_x"] = d.arena_gate_x - 120
 	return d

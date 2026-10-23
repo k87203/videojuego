@@ -5,6 +5,7 @@ const NAVY := Color("101b30")
 const CREAM := Color("eef5ff")
 const GOLD := Color("9affdf")
 const TEAL := Color("67ffe3")
+const QUIZ_ANSWER := 8
 var world
 var layer: CanvasLayer
 var ui: Control
@@ -24,6 +25,7 @@ var test_mode := false
 var frame_times: Array[float] = []
 var quitting := false
 var smoke_frames := 0
+var quiz_buttons: Array[Button] = []
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -175,6 +177,7 @@ func character_select(new_adventure: bool = false) -> void:
 		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button(ui, "✓ Seleccionado" if Progress.data.character == id else "Elegir " + spec.name, Rect2(x, 578, 282, 46), func():
 			Progress.data.character = id
+			Progress.data.shield = id == "diego"
 			Progress.save_game()
 			character_select(new_adventure), Progress.data.character == id)
 	button(ui, "Comenzar aventura →" if new_adventure else "Guardar y volver →", Rect2(54, 638, 1170, 37), func():
@@ -393,10 +396,14 @@ func quiz(terminal) -> void:
 	label(ui, "RETO DE LA BIBLIOTECA", Rect2(290, 158, 700, 35), 18, TEAL)
 	label(ui, "¿Cuántos bits forman un byte?", Rect2(290, 215, 700, 55), 32, GOLD)
 	label(ui, "Respuesta correcta: 10 créditos + beca protectora.", Rect2(290, 286, 700, 32), 18)
-	for i in 3:
-		var answer: int = [4, 8, 16][i]
-		button(ui, str(answer) + " bits", Rect2(290 + i * 238, 357, 220, 65), func():
-			if answer == 8:
+	# Same style for every option and a fresh order each time; the answer is checked by value.
+	var answers := [4, 8, 16]
+	answers.shuffle()
+	quiz_buttons.clear()
+	for i in answers.size():
+		var answer: int = answers[i]
+		quiz_buttons.append(button(ui, str(answer) + " bits", Rect2(290 + i * 238, 357, 220, 65), func():
+			if answer == QUIZ_ANSWER:
 				terminal.active = true
 				Progress.credit(10)
 				Progress.data.shield = true
@@ -407,7 +414,7 @@ func quiz(terminal) -> void:
 			else:
 				Sound.sfx("alert")
 				resume_game()
-				say("AZTLI", "Casi. Piensa en ocho interruptores binarios. Puedes intentarlo de nuevo.", 5), i == 1)
+				say("AZTLI", "Casi. Piensa en ocho interruptores binarios. Puedes intentarlo de nuevo.", 5)))
 	button(ui, "Volver al campus", Rect2(290, 481, 700, 50), resume_game)
 
 func game_over() -> void:

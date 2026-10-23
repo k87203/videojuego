@@ -34,6 +34,8 @@ var spawn_parent: Node
 var extension
 var trials_completed: Dictionary = {}
 var defeated_ids: Dictionary = {}
+## Hearts, coffee and scholarships taken during this run; saved with the checkpoint.
+var consumed_ids: Dictionary = {}
 
 func _ready() -> void:
 	has_credential = "2_credential" in Progress.data.collected
@@ -52,6 +54,7 @@ func _ready() -> void:
 		switch_on = bool(restored_state.get("switch", false))
 		trials_completed = restored_state.get("trials", {}).duplicate()
 		defeated_ids = restored_state.get("defeated_ids", {}).duplicate()
+		consumed_ids = restored_state.get("consumed_ids", {}).duplicate()
 		if int(restored_state.get("layout", 0)) < 4:
 			var migrated_enemies: Dictionary = {}
 			for uid in defeated_ids:
@@ -116,9 +119,9 @@ func _build() -> void:
 	for x in d.checkpoints:
 		var beacon = pickup("checkpoint", Vector2(x, 610))
 		beacon.active = resume_saved_checkpoint and x <= checkpoint.x
-	for x in d.coffee: pickup("coffee", Vector2(x, 565))
-	for x in d.shield: pickup("shield", Vector2(x, 560))
-	for x in d.hearts: pickup("heart", Vector2(x, 560))
+	for x in d.coffee: pickup("coffee", Vector2(x, 565), "%d_coffee_x%d" % [level_id, x])
+	for x in d.shield: pickup("shield", Vector2(x, 560), "%d_shield_x%d" % [level_id, x])
+	for x in d.hearts: pickup("heart", Vector2(x, 560), "%d_heart_x%d" % [level_id, x])
 	for e in d.enemies: spawn_enemy(e[0], Vector2(e[1], e[2]))
 	for h in d.hazards:
 		var hazard := Area2D.new()
@@ -157,10 +160,10 @@ func _build() -> void:
 			boss.dead = true
 			boss.health = 0
 			pickup("fragment", Vector2(d.arena_x + 100, 555), "%d_fragment" % level_id)
-		gate(Vector2(d.arena_x - 590, 70), Vector2(28, 540), "arena")
+		gate(Vector2(d.arena_gate_x, 70), Vector2(28, 540), "arena")
 		platform(Vector2(d.arena_x - 400, 490), Vector2(140, 24))
 		platform(Vector2(d.arena_x + 170, 485), Vector2(140, 24))
-		signpost(5130, "Combate: esquiva y espera a que desaparezca el escudo. Aztli abre otra oportunidad cada 10 segundos.")
+		signpost(d.arena_sign_x, "Combate: esquiva y espera a que desaparezca el escudo. Aztli abre otra oportunidad cada 10 segundos.")
 	else:
 		pickup("fragment", Vector2(6020, 556), "%d_fragment" % level_id)
 	for x in range(120, 6500, 380):
@@ -237,12 +240,16 @@ func fire(pos: Vector2, velocity: Vector2, tint: Color) -> void:
 	add_child(node)
 
 func player_attack() -> void:
+	# One registered impact per target per swing. A target that ignores the hit (still stunned)
+	# stays eligible for the rest of the swing, as before.
 	for enemy in get_tree().get_nodes_in_group("enemies"):
+		var id: int = enemy.get_instance_id()
+		if player.attack_hits.has(id): continue
 		var offset: Vector2 = enemy.position - player.position
 		if absf(offset.x) < 90 and absf(offset.y) < 72 and offset.x * player.facing > -18:
-			enemy.hit()
-	if is_instance_valid(boss) and player.position.distance_to(boss.position) < 110:
-		boss.hit()
+			if enemy.hit(): player.attack_hits[id] = true
+	if is_instance_valid(boss) and not player.attack_hits.has(boss.get_instance_id()) and player.position.distance_to(boss.position) < 110:
+		if boss.hit(): player.attack_hits[boss.get_instance_id()] = true
 
 func say(who: String, message: String, duration: float = 5.0) -> void:
 	if app != null: app.say(who, message, duration)
@@ -252,7 +259,7 @@ func save_snapshot() -> void:
 	var solved_quiz := false
 	for child in get_children():
 		if child.get_script() == Prop and child.kind == "quiz": solved_quiz = child.active
-	Progress.data.checkpoints[str(level_id)] = {"x": checkpoint.x, "time": level_time, "damage": damage_taken, "credits": level_credits, "defeated": enemies_defeated, "switch": switch_on, "quiz": solved_quiz, "boss": is_instance_valid(boss) and boss.dead, "layout": 4, "trials": trials_completed, "defeated_ids": defeated_ids}
+	Progress.data.checkpoints[str(level_id)] = {"x": checkpoint.x, "time": level_time, "damage": damage_taken, "credits": level_credits, "defeated": enemies_defeated, "switch": switch_on, "quiz": solved_quiz, "boss": is_instance_valid(boss) and boss.dead, "layout": 4, "trials": trials_completed, "defeated_ids": defeated_ids, "consumed_ids": consumed_ids}
 	Progress.save_game()
 
 func objective() -> String:
@@ -337,7 +344,7 @@ func boss_defeated() -> void:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy.home.x > boss.home.x - 600: enemy.queue_free()
 	pickup("fragment", Vector2(boss.home.x + 100, 555), "%d_fragment" % level_id)
-	pickup("heart", Vector2(boss.home.x + 200, 555))
+	pickup("heart", Vector2(boss.home.x + 200, 555), "%d_heart_boss" % level_id)
 	Sound.sfx("victory")
 	MusicManager.enter_level(level_id)
 	say("AZTLI", "¡Lo logramos! Recoge el fragmento dorado y entra por la puerta de graduación.", 7)

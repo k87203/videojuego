@@ -67,6 +67,8 @@ func run() -> void:
 			await ticks(2)
 			check(p.jumps == 1, "%s respects locked double jump" % id)
 			Input.action_release("jump")
+			# Diego starts shielded; spend that shield so the ability press tests a real activation.
+			if id == "diego": Progress.data.shield = false
 			Input.action_press("ability")
 			await ticks(2)
 			if id == "alex": check(p.dash_time > 0 and absf(p.velocity.x) >= 640, "Alex dash accelerates through actual input")

@@ -3,4 +3,4 @@ Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
 Level 1 (alex): PASS; x=95732.8; previous=(95726.82, 609.9338); lives_lost=0; key=false; switch=false; duration=257.6s; trials=3; streamed=0
 Level 2 (valeria): PASS; x=95732.3; previous=(95725.59, 609.9338); lives_lost=0; key=true; switch=false; duration=229.6s; trials=3; streamed=0
 Level 3 (diego): PASS; x=94604.5; previous=(94598.98, 609.9338); lives_lost=0; key=true; switch=true; duration=278.8s; trials=3; streamed=1
-Level 4 (sofia): PASS; x=94603.5; previous=(94597.32, 609.9338); lives_lost=0; key=true; switch=false; duration=246.0s; trials=3; streamed=1
+Level 4 (sofia): PASS; x=94601.9; previous=(94595.71, 609.9338); lives_lost=0; key=true; switch=false; duration=246.1s; trials=3; streamed=1

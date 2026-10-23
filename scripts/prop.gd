@@ -9,6 +9,8 @@ var inside := false
 var collected := false
 var text := ""
 var hidden_reward := false
+## Consumables tracked per run, so streamed chunks cannot respawn them.
+const RUN_REWARDS := ["heart", "coffee", "shield"]
 
 func _ready() -> void:
 	add_to_group("pickups")
@@ -24,6 +26,10 @@ func _ready() -> void:
 	body_exited.connect(func(body):
 		if body == world.player: inside = false)
 	if kind in ["credit", "usb", "feather", "fragment", "credential", "cache"] and uid in Progress.data.collected:
+		collected = true
+		visible = false
+		set_deferred("monitoring", false)
+	elif kind in RUN_REWARDS and world.consumed_ids.has(uid):
 		collected = true
 		visible = false
 		set_deferred("monitoring", false)
@@ -90,6 +96,9 @@ func collect() -> void:
 	if kind != "credit": Sound.sfx("power")
 	if kind in ["credit", "usb", "feather", "fragment", "credential", "cache"]:
 		Progress.data.collected.append(uid)
+		world.save_snapshot()
+	elif kind in RUN_REWARDS:
+		world.consumed_ids[uid] = true
 		world.save_snapshot()
 	world.fx.burst(position, color)
 	world.fx.ring(position, color, 24 if kind == "credit" else 54)

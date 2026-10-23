@@ -29,7 +29,10 @@ func save_game() -> void:
 	if file == null:
 		push_warning("No se pudo guardar el progreso: " + str(FileAccess.get_open_error()))
 		return
-	file.store_string(JSON.stringify(data))
+	# The scholarship shield belongs to the current run and student, never to the save file.
+	var saved := data.duplicate()
+	saved.erase("shield")
+	file.store_string(JSON.stringify(saved))
 	file.close()
 	var error := DirAccess.rename_absolute(save_path + ".tmp", save_path)
 	if error != OK: push_warning("No se pudo confirmar el guardado: " + str(error))
@@ -42,6 +45,7 @@ func load_game() -> void:
 	var parsed = parser.data
 	if parsed is Dictionary and parsed.get("version") == 1:
 		for key in data.keys():
+			if key == "shield": continue
 			if parsed.has(key) and typeof(parsed[key]) == typeof(data[key]):
 				data[key] = parsed[key]
 			elif parsed.has(key) and data[key] is int and (parsed[key] is float or parsed[key] is int):

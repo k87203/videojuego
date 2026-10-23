@@ -11,6 +11,8 @@ var cycle := 0.0
 var shot_timer := 0.0
 var vulnerable := 0.0
 var hurt_timer := 0.0
+var shield_feedback := 0.0
+var shield_feedbacks := 0
 var home := Vector2.ZERO
 var phase_history: Array[int] = [1]
 var windup := 0.0
@@ -78,6 +80,7 @@ func _physics_process(delta: float) -> void:
 	shot_timer -= delta
 	vulnerable = maxf(0, vulnerable - delta)
 	hurt_timer = maxf(0, hurt_timer - delta)
+	shield_feedback = maxf(0, shield_feedback - delta)
 	if summon_time > 0:
 		summon_time -= delta
 		if summon_time <= 0:
@@ -122,12 +125,16 @@ func _physics_process(delta: float) -> void:
 			p.hurt(position)
 	queue_redraw()
 
-func hit() -> void:
-	if not active or dead or hurt_timer > 0: return
+func hit() -> bool:
+	if not active or dead or hurt_timer > 0: return false
 	if vulnerable <= 0:
-		Sound.sfx("shield", 0.7)
-		world.fx.floating(position + Vector2(-50, -110), "ESCUDO", Color("a7b9ef"))
-		return
+		# A block still counts as the swing's impact; feedback is throttled for stomps and quick swings.
+		if shield_feedback <= 0:
+			shield_feedback = 0.4
+			shield_feedbacks += 1
+			Sound.sfx("shield", 0.7)
+			world.fx.floating(position + Vector2(-50, -110), "ESCUDO", Color("a7b9ef"))
+		return true
 	health -= 1
 	hurt_timer = 0.45
 	Sound.sfx("hit", 0.7)
@@ -141,6 +148,7 @@ func hit() -> void:
 		dash_time = 0
 		Progress.data.score += 1500 if miniboss else 4000
 		world.boss_defeated()
+	return true
 
 func _draw() -> void:
 	if summon_time > 0:

@@ -113,14 +113,15 @@ func build_chunk(index: int) -> void:
 		elif kind == "collapse" and section > 7: floors = [[0, 260], [960, 240]]
 	for floor_part in floors:
 		world.platform(Vector2(x + floor_part[0], 610), Vector2(floor_part[1], 220), true)
-	if index % 4 == 0 or part == 0:
+	if part == 0:
 		var beacon = world.pickup("checkpoint", Vector2(x + 140, 610), stable(index, "checkpoint", 0))
 		beacon.active = x + 140 <= world.checkpoint.x
 	if part == 0:
 		world.signpost(x + 220, Data.title(world.level_id, section) + " · " + hint(kind))
 	if rest:
-		world.pickup("heart", Vector2(x + 650, 565), stable(index, "heart", 0))
-		world.pickup("coffee" if section % 2 else "shield", Vector2(x + 850, 560), stable(index, "power", 0))
+		# Slot is the local x offset: level, chunk and position identify each consumable.
+		world.pickup("heart", Vector2(x + 650, 565), stable(index, "heart", 650))
+		world.pickup("coffee" if section % 2 else "shield", Vector2(x + 850, 560), stable(index, "power", 850))
 	else:
 		match kind:
 			"moving":

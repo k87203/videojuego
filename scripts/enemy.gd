@@ -211,8 +211,8 @@ func _physics_process(delta: float) -> void:
 		else: p.hurt(position)
 	queue_redraw()
 
-func hit() -> void:
-	if dead or stun > 0: return
+func hit() -> bool:
+	if dead or stun > 0: return false
 	life -= 1
 	stun = 0.4
 	windup = 0
@@ -230,6 +230,7 @@ func hit() -> void:
 		world.enemies_defeated += 1
 		world.fx.floating(position + Vector2(0, -45), "+150")
 		queue_free()
+	return true
 
 func _draw() -> void:
 	if windup > 0:

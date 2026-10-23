@@ -8,7 +8,22 @@ Abre **JUGAR.cmd** o **build/Windows/TECNO_AVENTURA_III_0.4.1.exe**. Para compar
 
 Las versiones anteriores del ejecutable se conservan. El lanzador prioriza la 0.4.1. Antes de esta actualización se respaldó el proyecto completo en **backups/tecno-aventura-0.3-before-remaster.zip**.
 
-## Cambios actuales
+> **Nota:** las correcciones de revisión descritas abajo están en el código fuente, pero **todavía no en el ejecutable**. El .exe y el ZIP de build/ siguen siendo los de la 0.4.1 publicada; hay que volver a exportar para incluirlas.
+
+## Correcciones de revisión (posteriores a la 0.4.1)
+
+Corrigen errores sin cambiar el balance ni la arquitectura. Respaldo previo: **backups/tecno-aventura-0.4.1-before-fixes.zip**; el estado publicado también está en git con la etiqueta **v0.4.1**.
+
+- **Escudo del jefe:** cada golpe de mochila registra como máximo un impacto por objetivo (player.gd guarda los objetivos alcanzados y los reinicia al empezar otro ataque). Antes, el escudo mostraba «ESCUDO» y su sonido en cada frame del golpe, unas 12 veces. Además, ese aviso espera 0.4 s antes de repetirse. El daño a enemigos y jefes no cambia: un enemigo aturdido sigue pudiendo recibir el golpe cuando termina su aturdimiento, como antes.
+- **Quiz de la biblioteca:** las tres respuestas tienen el mismo estilo (antes la correcta aparecía resaltada), su orden se mezcla en cada intento y la respuesta se comprueba por valor, no por posición.
+- **Letrero de combate:** en los niveles 3 y 4 se calcula a partir de la entrada de la arena (`arena_gate_x` / `arena_sign_x` en level_data.gd). Ya no está fijo en x=5130, al inicio del nivel.
+- **Habilidad de Diego:** si la beca ya está activa, Q no gasta la recarga y muestra «Ya tienes escudo».
+- **Escudo por partida:** la beca ya no se guarda en progress.json ni pasa de un estudiante a otro. Cada nivel empieza con el estado inicial del estudiante (solo Diego con escudo), y elegir otro estudiante también la reinicia. Las partidas antiguas que la tenían guardada la ignoran al cargar. Consecuencia: la beca obtenida a mitad de nivel (quiz o recompensa) no se conserva al salir y pulsar Continuar.
+- **Recompensas únicas:** corazones, café y becas tienen ID determinista por nivel, tramo y posición (`ex_<nivel>_<tramo>_heart_650`, `1_heart_x3200`…). Una vez recogidos no reaparecen al alejarte y volver, ni al guardar y continuar. Se registran con el checkpoint del nivel, igual que los enemigos derrotados, así que reiniciar el nivel desde cero los restaura y el balance de cada intento no cambia.
+- **Limpieza:** se simplificó la condición redundante de faros en level_extension.gd y expansion_data.gd (`part == 0`).
+- **Pruebas:** nueva suite tests/fixes_suite.gd con 37 comprobaciones, `.\tools\check.ps1 -Fixes`. Se ajustó la prueba de habilidades de Diego para gastar primero su escudo inicial.
+
+## Cambios de la 0.4.1
 
 - **Menú nuevo:** estética nocturna y neón, tipografía de mayor peso, ilustración vectorial original de estudiante y águila, iluminación, partículas limitadas, parallax de ratón, pulsos sincronizados con la música, entrada escalonada y botones con respuesta visual/sonora y foco de teclado.
 - **Electrónica original:** trece arreglos recompuestos, de 148 a 180 BPM, con subgraves, bajo Reese, sintetizadores supersaw, arpegios, percusión, transiciones de construcción/drop/bajada y sidechain. Cada tema tiene 64 compases y ocho frases. Se renovaron once efectos y se agregaron windup, enemy_attack y ui_hover. Total de recursos: 21 temas y 24 efectos.
@@ -27,7 +42,7 @@ Se revisaron teacher.gd, chalk.gd, dropper.gd, player.gd y la dirección de pers
 |---|---|---|
 | Alex | Equilibrado | Impulso rápido, recarga de 4 s |
 | Valeria | Más velocidad, doble salto desde el comienzo | Salto aéreo; también funciona el segundo Espacio |
-| Diego | Cuatro corazones y beca inicial | Activa un escudo, recarga de 14 s |
+| Diego | Cuatro corazones y beca inicial | Activa un escudo, recarga de 14 s (no se gasta si ya tienes escudo) |
 | Sofía | Mayor salto y detección de escondites | Radar durante 5 s, recarga de 8 s |
 
 | Acción | Teclado | Mando |
@@ -78,6 +93,7 @@ Pendiente de evaluación humana: diversión, variedad, duración promedio, dific
 - scripts/music_manager.gd y sound.gd: eventos, reloj musical y mezcla.
 - tools/compose_electro_score.py: compositor original reproducible con Python, NumPy y SciPy.
 - tools/build_windows.py: plantilla oficial 4.7.2, icono, siete arranques de prueba, ZIP y SHA256.
+- Control de versiones: git, rama main, con la etiqueta v0.4.1 para el estado publicado. build/, backups/, .godot/ y \_\_pycache\_\_/ quedan fuera del repositorio.
 
 Comprobaciones en PowerShell:
 
@@ -87,6 +103,7 @@ Comprobaciones en PowerShell:
     .\tools\check.ps1 -Routes
     .\tools\check.ps1 -Matrix
     .\tools\check.ps1 -Combat
+    .\tools\check.ps1 -Fixes
 
 El verificador utiliza Python 3 y Godot real. Puedes indicar otra ruta de Godot con -Godot. Las pruebas utilizan guardados aislados y no reemplazan la partida personal. Los generadores anteriores se conservaron como herramientas históricas; ejecuta compose_electro_score.py para la banda sonora actual.
 

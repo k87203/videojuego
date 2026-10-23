@@ -1,0 +1,40 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Boss arena activates for the shield test
+PASS: One swing against the shield shows ESCUDO and plays its sound exactly once
+PASS: A shielded swing no longer floods floating text
+PASS: ESCUDO feedback waits about 0.4 s before repeating
+PASS: After the short cooldown the shield gives feedback again
+PASS: An exposed boss still takes exactly one damage per swing
+PASS: A single swing still defeats a one-hit task
+PASS: A full swing registers only one hit on a robot
+PASS: Robot still needs exactly two swings
+PASS: A swing that starts during stun still lands once the stun ends
+PASS: Every quiz answer has the same style before answering
+PASS: The quiz always offers the same three answers
+PASS: The correct answer changes position between attempts (3 positions seen)
+PASS: A wrong answer is rejected by value
+PASS: The correct answer is accepted by value in any position
+PASS: Level 3 combat sign stands just before the arena gate (x=94290)
+PASS: Level 3 combat sign sits on the arena's solid ground
+PASS: Level 4 combat sign stands just before the arena gate (x=94290)
+PASS: Level 4 combat sign sits on the arena's solid ground
+PASS: Diego starts the level with his shield
+PASS: Q with an active shield keeps the cooldown and shows a warning
+PASS: Q without a shield activates it and starts the 14 s cooldown
+PASS: Diego's level begins shielded
+PASS: Alex does not inherit Diego's shield
+PASS: Starting a level resets a leftover shield to the student default
+PASS: Changing student clears the shield
+PASS: The save file never stores the shield
+PASS: An old save with a stored shield loads without it
+PASS: Rest-stop rewards use level, chunk and position IDs
+PASS: Rest-stop heart and power-up spawn on first visit
+PASS: Collected consumables are registered
+PASS: Leaving the area unloads the rest-stop chunk
+PASS: Returning to the chunk does not respawn collected rewards
+PASS: Intro hearts have position-based IDs
+PASS: Consumed rewards stay collected after saving and continuing
+PASS: Restarting a level from zero restores its consumables
+PASS: Simplified beacon rule keeps one checkpoint per district
+FIXES RESULT: 37 checks, 0 failures

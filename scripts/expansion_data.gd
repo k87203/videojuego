@@ -44,4 +44,4 @@ static func migrate_id(uid: String) -> String:
 static func valid_checkpoint(x: float) -> bool:
 	if is_equal_approx(x, LENGTH - 1380.0): return true
 	var index := roundi((x - START - 140) / CHUNK)
-	return index >= 0 and index < COUNT * CHUNKS_PER_DISTRICT and (index % 4 == 0 or index % CHUNKS_PER_DISTRICT == 0) and absf(x - checkpoint_x(index)) < 0.1
+	return index >= 0 and index < COUNT * CHUNKS_PER_DISTRICT and index % CHUNKS_PER_DISTRICT == 0 and absf(x - checkpoint_x(index)) < 0.1

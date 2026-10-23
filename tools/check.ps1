@@ -1,6 +1,8 @@
-param([string]$Godot = 'C:\Users\uriel\Downloads\Godot_v4.7.2-stable_win64_console.exe', [switch]$Routes, [switch]$Combat, [switch]$Expansion, [switch]$Matrix, [switch]$Remaster)
+param([string]$Godot = 'C:\Users\uriel\Downloads\Godot_v4.7.2-stable_win64_console.exe', [switch]$Routes, [switch]$Combat, [switch]$Expansion, [switch]$Matrix, [switch]$Remaster, [switch]$Fixes)
 $ErrorActionPreference = 'Stop'
-if ($Remaster) {
+if ($Fixes) {
+    python (Join-Path $PSScriptRoot 'check.py') --godot $Godot --fixes
+} elseif ($Remaster) {
     python (Join-Path $PSScriptRoot 'check.py') --godot $Godot --remaster
 } elseif ($Matrix) {
     python (Join-Path $PSScriptRoot 'check.py') --godot $Godot --matrix

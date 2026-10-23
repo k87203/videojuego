@@ -16,6 +16,7 @@ parser.add_argument('--combat', action='store_true')
 parser.add_argument('--expansion', action='store_true')
 parser.add_argument('--matrix', action='store_true')
 parser.add_argument('--remaster', action='store_true')
+parser.add_argument('--fixes', action='store_true')
 args = parser.parse_args()
 
 references = 0
@@ -44,7 +45,9 @@ def run(arguments, log):
 
 run(['--editor', '--import', '--quit'], 'import.log')
 print('GODOT IMPORT: OK', flush=True)
-if args.remaster:
+if args.fixes:
+    run(['--fixed-fps', '60', 'res://tests/fixes_suite.tscn', '--', '--test'], 'fixes.log')
+elif args.remaster:
     run(['--fixed-fps', '60', 'res://tests/remaster_suite.tscn', '--', '--test'], 'remaster.log')
 elif args.matrix:
     lines = []

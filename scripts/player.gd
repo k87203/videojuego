@@ -27,13 +27,16 @@ var max_health := 3
 var ability_cooldown := 0.0
 var dash_time := 0.0
 var radar_time := 0.0
+## Instance IDs already struck by the current swing; cleared when a new attack starts.
+var attack_hits: Dictionary = {}
 
 func _ready() -> void:
 	character_id = str(Progress.data.character)
 	character = preload("res://scripts/characters.gd").spec(character_id)
 	max_health = int(character.health)
 	health = max_health
-	if character_id == "diego": Progress.data.shield = true
+	# The scholarship shield is per-run state: every level starts from this student's default.
+	Progress.data.shield = character_id == "diego"
 	add_to_group("player")
 	collision_layer = 2
 	collision_mask = 1
@@ -121,6 +124,7 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("attack") and attack_cooldown <= 0:
 		attack_time = 0.19
 		attack_cooldown = 0.34
+		attack_hits.clear()
 		Sound.sfx("attack")
 		world.fx.ring(position + Vector2(facing * 36, -35), Color("98ffe9"), 38)
 		MusicManager.action(0.65, 1.4)
@@ -159,6 +163,9 @@ func can_double_jump() -> bool:
 func use_ability() -> void:
 	if ability_cooldown > 0 or locked: return
 	if character_id == "valeria" and (is_on_floor() or jumps >= 2): return
+	if character_id == "diego" and Progress.data.shield:
+		world.fx.floating(position + Vector2(-70, -95), "Ya tienes escudo", Color("78e8e0"))
+		return
 	ability_cooldown = float(character.cooldown)
 	match character_id:
 		"alex": dash_time = 0.18
