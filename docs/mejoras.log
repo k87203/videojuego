@@ -1,0 +1,26 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Standing still raises no dust
+PASS: Student leans into acceleration and speed (max tilt 0.128 rad)
+PASS: Run cycle advances with distance travelled, so feet do not slide
+PASS: Reversing at speed kicks up braking dust
+PASS: Jump leaves on the first step while the art shows an anticipation crouch
+PASS: Takeoff stretches the student vertically
+PASS: Landing squashes the student
+PASS: Squash, tilt, run cycle and slide never touch the body, capsule or visual node transform
+PASS: A landed hit triggers hit-stop
+PASS: Hit-stop never scales engine time
+PASS: Gameplay timers keep running during hit-stop
+PASS: Boss arena active for timing check
+PASS: Boss hurt window counts down normally through the hit-stop
+PASS: Boss attack cycle keeps real time during the hit-stop
+PASS: Screen changes start a fade-in transition
+PASS: Fade-in completes in about 0.2 s
+PASS: UI uses a shared Godot Theme with its default font
+PASS: Primary and secondary buttons use Theme variations
+PASS: Buttons have distinct normal, hover and pressed states from the Theme
+PASS: Labels get an outline for legibility
+PASS: HUD shows vector icons (9)
+PASS: Heart icons track health
+PASS: Pause menu keeps keyboard focus on the themed primary action
+MEJORAS RESULT: 23 checks, 0 failures

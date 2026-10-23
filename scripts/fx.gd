@@ -8,6 +8,10 @@ func burst(pos: Vector2, color: Color, count: int = 14) -> void:
 	for i in mini(count, 240 - particles.size()):
 		particles.append({"p": pos, "v": Vector2(randf_range(-130, 130), randf_range(-210, -40)), "life": randf_range(0.3, 0.8), "color": color, "size": randf_range(2, 5)})
 
+func dust(pos: Vector2, direction: float) -> void:
+	for i in mini(4, 240 - particles.size()):
+		particles.append({"p": pos + Vector2(randf_range(-6, 6), 0), "v": Vector2(direction * randf_range(40, 120), randf_range(-90, -30)), "life": randf_range(0.25, 0.45), "color": Color(0.86, 0.9, 0.95, 0.55), "size": randf_range(3, 6)})
+
 func floating(pos: Vector2, message: String, color: Color = Color("ffdc79")) -> void:
 	labels.append({"p": pos, "text": message, "life": 1.4, "color": color})
 

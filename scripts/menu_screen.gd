@@ -59,28 +59,6 @@ static func build(app) -> void:
 			tween.tween_property(child, "position", destination, 0.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT).set_delay(minf(0.5, index * 0.025))
 			index += 1
 
-static func decorate(button: Button, primary: bool = false) -> void:
+static func decorate(button: Button, _primary: bool = false) -> void:
+	# States, hover motion and sound come from the shared Theme and Main.button(); the menu only uses a tighter type size.
 	button.add_theme_font_size_override("font_size", 16)
-	button.add_theme_color_override("font_color", Color("07121e") if primary else Color("d7e5fa"))
-	button.add_theme_color_override("font_hover_color", Color("07121e"))
-	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		var style := StyleBoxFlat.new()
-		style.set_corner_radius_all(4)
-		style.bg_color = Color("68ffe2") if primary else Color("111f36")
-		style.border_color = Color("68ffe2") if primary else Color("31425f")
-		style.set_border_width_all(1)
-		if state in ["hover", "pressed"]:
-			style.bg_color = Color("a4ffec")
-			style.border_color = Color("d8fff7")
-			style.shadow_color = Color(0.2, 1, 0.8, 0.25)
-			style.shadow_size = 12
-		if state == "focus":
-			style.border_color = Color("c2a7ff")
-			style.set_border_width_all(2)
-		if state == "disabled": style.bg_color = Color("172139")
-		button.add_theme_stylebox_override(state, style)
-	button.pivot_offset = button.size * 0.5
-	button.mouse_entered.connect(func():
-		Sound.sfx("ui_hover")
-		button.create_tween().tween_property(button, "scale", Vector2.ONE * 1.025, 0.14).set_trans(Tween.TRANS_CUBIC))
-	button.mouse_exited.connect(func(): button.create_tween().tween_property(button, "scale", Vector2.ONE, 0.14))

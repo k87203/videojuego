@@ -29,6 +29,16 @@ var dash_time := 0.0
 var radar_time := 0.0
 ## Instance IDs already struck by the current swing; cleared when a new attack starts.
 var attack_hits: Dictionary = {}
+## Visual-only pose read by student_art.gd. The collision capsule never scales or rotates.
+var pose_scale := Vector2.ONE
+var pose_tilt := 0.0
+var run_phase := 0.0
+var stretch := 0.0
+var takeoff := 0.0
+var hitstop := 0.0
+var dust_time := 0.0
+var dust_puffs := 0
+var prev_velocity_x := 0.0
 
 func _ready() -> void:
 	character_id = str(Progress.data.character)
@@ -63,12 +73,12 @@ func _ready() -> void:
 	add_child(camera)
 
 func _physics_process(delta: float) -> void:
-	anim_time += delta
+	# Hit-stop freezes only the drawn pose; physics and every gameplay timer keep running.
+	if hitstop <= 0: anim_time += delta
 	ability_cooldown = maxf(0, ability_cooldown - delta)
 	dash_time = maxf(0, dash_time - delta)
 	radar_time = maxf(0, radar_time - delta)
 	landing_squash = move_toward(landing_squash, 0, delta * 6)
-	visual.scale = Vector2(1 + landing_squash * 0.13, 1 - landing_squash * 0.12)
 	invulnerable = maxf(0, invulnerable - delta)
 	coffee = maxf(0, coffee - delta)
 	attack_time = maxf(0, attack_time - delta)
@@ -77,6 +87,7 @@ func _physics_process(delta: float) -> void:
 	slide_time = maxf(0, slide_time - delta)
 	if locked:
 		velocity.x = 0
+		update_pose(delta, 0)
 		visual.queue_redraw()
 		return
 	var grounded := is_on_floor()
@@ -135,7 +146,7 @@ func _physics_process(delta: float) -> void:
 	# Per-target stun/hurt windows guarantee at most one hit per swing.
 	if attack_time > 0: world.player_attack()
 	if is_on_floor() and not grounded and old_y > 140:
-		landing_squash = 1
+		landing_squash = clampf(old_y / 650.0, 0.5, 1.0)
 		Sound.sfx("land")
 		world.fx.burst(position, Color("b3e7da"), 7)
 	if is_on_floor() and absf(velocity.x) > 80:
@@ -145,6 +156,7 @@ func _physics_process(delta: float) -> void:
 			Sound.sfx("step", randf_range(0.9, 1.12))
 	if position.y > 800:
 		world.fall_respawn()
+	update_pose(delta, direction)
 	visual.queue_redraw()
 
 func jump(air_jump: bool) -> void:
@@ -154,8 +166,45 @@ func jump(air_jump: bool) -> void:
 	coyote = 0
 	buffered_jump = 0
 	slide_time = 0
+	# Takeoff is immediate; the art shows a brief crouch, then the stretch.
+	takeoff = 0.09
 	Sound.sfx("jump", 1.3 if air_jump else 1.0)
 	world.fx.burst(position, Color("6ce5d4") if air_jump else Color("f5dda6"), 10)
+
+func update_pose(delta: float, direction: float) -> void:
+	takeoff = maxf(0, takeoff - delta)
+	hitstop = maxf(0, hitstop - delta)
+	dust_time = maxf(0, dust_time - delta)
+	var on_floor := is_on_floor()
+	var acceleration := (velocity.x - prev_velocity_x) / maxf(delta, 0.001)
+	prev_velocity_x = velocity.x
+	# Squash & stretch: anticipation crouch, takeoff stretch, airborne stretch, landing squash.
+	var target := 0.0
+	if takeoff > 0.05: target = -0.6
+	elif takeoff > 0: target = 0.85
+	elif not on_floor: target = clampf(absf(velocity.y) / 1100.0, 0, 0.5)
+	target -= landing_squash
+	stretch = lerpf(stretch, clampf(target, -1, 1), 1.0 - exp(-delta * 26))
+	pose_scale = Vector2(1 - stretch * 0.14, 1 + stretch * 0.16)
+	# Lean into speed and acceleration.
+	var lean := clampf(velocity.x / 4200.0 + acceleration / 14000.0, -0.16, 0.16) if on_floor else clampf(velocity.x / 6000.0, -0.08, 0.08)
+	if crouched: lean *= 0.4
+	pose_tilt = lerpf(pose_tilt, lean, 1.0 - exp(-delta * 12))
+	# The run cycle advances with distance, so feet do not slide at any speed.
+	if on_floor: run_phase = fposmod(run_phase + absf(velocity.x) * delta / 125.0 * TAU, TAU)
+	var braking := on_floor and absf(velocity.x) > 170 and (absf(direction) < 0.1 or signf(direction) != signf(velocity.x))
+	if (braking or (slide_time > 0 and on_floor)) and dust_time <= 0:
+		dust_time = 0.06
+		dust_puffs += 1
+		world.fx.dust(position + Vector2(signf(velocity.x) * 12, -3), -signf(velocity.x))
+
+func on_hit_confirmed(target: Node2D) -> void:
+	# Visual hit-stop: the pose holds, the target flashes and the camera kicks. No time scaling.
+	hitstop = 0.07
+	world.shake = maxf(world.shake, 2.5)
+	if is_instance_valid(target) and not target.is_queued_for_deletion():
+		target.modulate = Color(1.9, 1.9, 1.9)
+		target.create_tween().tween_property(target, "modulate", Color.WHITE, 0.14)
 
 func can_double_jump() -> bool:
 	return Progress.data.double_jump or character_id == "valeria"

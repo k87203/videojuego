@@ -10,6 +10,19 @@ Las versiones anteriores del ejecutable se conservan. El lanzador prioriza la 0.
 
 > **Nota:** las correcciones de revisión descritas abajo están en el código fuente, pero **todavía no en el ejecutable**. El .exe y el ZIP de build/ siguen siendo los de la 0.4.1 publicada; hay que volver a exportar para incluirlas.
 
+## 0.5 en desarrollo (rama mejoras-0.5)
+
+Se trabaja por etapas en la rama `mejoras-0.5`; `main` conserva la 0.4.1 publicada.
+
+**Etapa 1 — Animaciones e interfaz**
+
+- **Movimiento:** squash & stretch (anticipación agachada al despegar, estiramiento en el aire y aplastamiento al aterrizar, proporcional a la caída) e inclinación según velocidad y aceleración. Las piernas ahora tienen rodilla y el ciclo de carrera avanza con la distancia recorrida, así los pies no patinan. Hay polvo al frenar o deslizarse.
+- **Hit-stop visual:** al conectar un golpe, la pose se congela unos 70 ms, el objetivo destella, aparece una chispa y la cámara da un pequeño golpe. No escala el tiempo del motor ni pausa temporizadores, así que los combates contra jefes duran lo mismo.
+- **Solo visual:** todos los efectos los dibuja student_art.gd a partir de datos de pose de player.gd (`pose_scale`, `pose_tilt`, `run_phase`, `hitstop`). El cuerpo, la cápsula de colisión, la hitbox y el nodo visual no se escalan ni rotan. El salto no se retrasa: la anticipación es puramente gráfica.
+- **Interfaz:** un Theme de Godot compartido (scripts/ui_theme.gd) con paleta única y botones con estados normal, hover, presionado, foco y deshabilitado. Los botones crecen levemente al pasar el ratón y se hunden al pulsar. Hay transición de entrada en cada pantalla, Segoe UI seminegrita, contorno y sombra en el texto, y sombras en los paneles.
+- **HUD con iconos vectoriales** (scripts/hud_icon.gd): corazones llenos/vacíos, vidas, créditos, USB, título, reloj de entrega y potenciadores activos (pluma, beca, café).
+- **Pruebas:** tests/mejoras_suite.gd (`.\tools\check.ps1 -Mejoras`). tests/pose_sheet.tscn genera docs/poses-05.png con las poses; necesita ventana, no headless.
+
 ## Correcciones de revisión (posteriores a la 0.4.1)
 
 Corrigen errores sin cambiar el balance ni la arquitectura. Respaldo previo: **backups/tecno-aventura-0.4.1-before-fixes.zip**; el estado publicado también está en git con la etiqueta **v0.4.1**.
@@ -104,6 +117,7 @@ Comprobaciones en PowerShell:
     .\tools\check.ps1 -Matrix
     .\tools\check.ps1 -Combat
     .\tools\check.ps1 -Fixes
+    .\tools\check.ps1 -Mejoras
 
 El verificador utiliza Python 3 y Godot real. Puedes indicar otra ruta de Godot con -Godot. Las pruebas utilizan guardados aislados y no reemplazan la partida personal. Los generadores anteriores se conservaron como herramientas históricas; ejecuta compose_electro_score.py para la banda sonora actual.
 

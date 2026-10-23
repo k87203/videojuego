@@ -1,10 +1,12 @@
 extends Node
 const World = preload("res://scripts/world.gd")
 const Data = preload("res://scripts/level_data.gd")
-const NAVY := Color("101b30")
-const CREAM := Color("eef5ff")
-const GOLD := Color("9affdf")
-const TEAL := Color("67ffe3")
+const UI = preload("res://scripts/ui_theme.gd")
+const HudIcon = preload("res://scripts/hud_icon.gd")
+const NAVY := UI.SURFACE
+const CREAM := UI.TEXT
+const GOLD := UI.MINT
+const TEAL := UI.ACCENT
 const QUIZ_ANSWER := 8
 var world
 var layer: CanvasLayer
@@ -26,18 +28,21 @@ var frame_times: Array[float] = []
 var quitting := false
 var smoke_frames := 0
 var quiz_buttons: Array[Button] = []
+var ui_fade: Tween
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().auto_accept_quit = false
 	var system_font := SystemFont.new()
 	system_font.font_names = PackedStringArray(["Segoe UI", "Noto Sans", "Arial"])
+	system_font.font_weight = 600
 	font = system_font
 	layer = CanvasLayer.new()
 	layer.layer = 30
 	add_child(layer)
 	ui = Control.new()
 	ui.size = Vector2(1280, 720)
+	ui.theme = UI.build(font)
 	layer.add_child(ui)
 	var args := OS.get_cmdline_user_args()
 	for arg in args:
@@ -67,18 +72,18 @@ func clear_ui() -> void:
 	for child in ui.get_children():
 		ui.remove_child(child)
 		child.queue_free()
+	# Every screen change fades in; input is accepted immediately.
+	if is_instance_valid(ui_fade): ui_fade.kill()
+	ui.modulate.a = 0.0
+	ui_fade = ui.create_tween()
+	ui_fade.tween_property(ui, "modulate:a", 1.0, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 func panel(parent: Node, rect: Rect2, color: Color = NAVY, radius: int = 18) -> Panel:
 	var p := Panel.new()
 	p.position = rect.position
 	p.size = rect.size
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var s := StyleBoxFlat.new()
-	s.bg_color = color
-	s.set_corner_radius_all(radius)
-	s.border_color = Color(0.65, 0.88, 0.88, 0.16)
-	s.set_border_width_all(1)
-	p.add_theme_stylebox_override("panel", s)
+	p.add_theme_stylebox_override("panel", UI.flat(color, radius, Color(0.65, 0.88, 0.88, 0.16), 1, 10 if color.a > 0.8 and rect.size.x < 1280 else 0))
 	parent.add_child(p)
 	return p
 
@@ -88,7 +93,6 @@ func label(parent: Node, words: String, rect: Rect2, size: int = 22, color: Colo
 	l.text = words
 	l.position = rect.position
 	l.size = rect.size
-	l.add_theme_font_override("font", font)
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", color)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -101,20 +105,16 @@ func button(parent: Node, words: String, rect: Rect2, callback: Callable, primar
 	b.position = rect.position
 	b.size = rect.size
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	b.add_theme_font_override("font", font)
-	b.add_theme_font_size_override("font_size", 20)
-	b.add_theme_color_override("font_color", NAVY if primary else CREAM)
-	b.add_theme_color_override("font_hover_color", NAVY)
-	b.add_theme_color_override("font_focus_color", NAVY if primary else GOLD)
-	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		var s := StyleBoxFlat.new()
-		s.set_corner_radius_all(6)
-		s.bg_color = GOLD if primary else Color("233e57")
-		if state in ["hover", "pressed"]: s.bg_color = TEAL
-		if state == "disabled": s.bg_color = Color("344354")
-		s.border_color = GOLD if state == "focus" else Color(0.65, 0.88, 0.88, 0.18)
-		s.set_border_width_all(2 if state == "focus" else 1)
-		b.add_theme_stylebox_override(state, s)
+	# Normal / hover / pressed / focus / disabled states come from the shared Theme.
+	b.theme_type_variation = &"PrimaryButton" if primary else &""
+	b.pivot_offset = rect.size * 0.5
+	b.mouse_entered.connect(func():
+		if b.disabled: return
+		Sound.sfx("ui_hover")
+		b.create_tween().tween_property(b, "scale", Vector2.ONE * 1.03, 0.12).set_trans(Tween.TRANS_CUBIC))
+	b.mouse_exited.connect(func(): b.create_tween().tween_property(b, "scale", Vector2.ONE, 0.12))
+	b.button_down.connect(func(): b.scale = Vector2.ONE * 0.97)
+	b.button_up.connect(func(): b.scale = Vector2.ONE)
 	b.pressed.connect(func():
 		Sound.sfx("coin", 0.75)
 		callback.call())
@@ -212,17 +212,28 @@ func build_hud() -> void:
 	label(ui, "%02d" % world.level_id, Rect2(46, 35, 43, 39), 28, TEAL)
 	label(ui, Data.TITLES[world.level_id - 1], Rect2(103, 30, 360, 30), 23)
 	label(ui, Data.SUBTITLES[world.level_id - 1], Rect2(104, 62, 360, 22), 12, Color("8eb3bf"))
-	hud.health = label(ui, "", Rect2(465, 31, 165, 31), 27, Color("ff9aa5"))
-	hud.lives = label(ui, "", Rect2(468, 64, 150, 21), 12, Color("a7bfca"))
-	hud.credits = label(ui, "", Rect2(637, 29, 168, 32), 25, GOLD)
+	hud.hearts = icon(ui, "hearts", Rect2(463, 28, 165, 32))
+	icon(ui, "lives", Rect2(466, 63, 18, 22))
+	hud.lives = label(ui, "", Rect2(489, 64, 130, 21), 12, Color("a7bfca"))
+	icon(ui, "coin", Rect2(637, 31, 28, 28))
+	hud.credits = label(ui, "", Rect2(671, 28, 140, 32), 25, GOLD)
 	hud.score = label(ui, "", Rect2(637, 62, 190, 23), 12, Color("a7bfca"))
-	hud.items = label(ui, "", Rect2(832, 35, 290, 28), 17, TEAL)
+	icon(ui, "usb", Rect2(834, 32, 22, 32))
+	hud.usb = label(ui, "", Rect2(862, 34, 80, 28), 18, TEAL)
+	icon(ui, "document", Rect2(948, 32, 26, 32))
+	hud.docs = label(ui, "", Rect2(980, 34, 90, 28), 18, TEAL)
 	button(ui, "II", Rect2(1177, 32, 59, 48), pause_game)
-	hud.power = label(ui, "", Rect2(28, 112, 510, 25), 15, GOLD)
+	# Active power-ups: icon + short caption, shown only while active.
+	hud.powers = []
+	for power in [["feather", "DOBLE SALTO", 160], ["shield", "BECA", 100], ["coffee", "", 120]]:
+		var power_icon: Control = icon(ui, power[0], Rect2(28, 110, 26, 28))
+		var caption := label(ui, power[1], Rect2(58, 113, power[2] - 34, 25), 15, GOLD)
+		hud.powers.append({"kind": power[0], "icon": power_icon, "label": caption, "width": power[2]})
 	var objective_panel := panel(ui, Rect2(887, 111, 369, 36), Color(0.04, 0.1, 0.18, 0.9), 10)
 	hud.objective = label(objective_panel, "", Rect2(12, 7, 346, 24), 15, TEAL)
 	hud.section = label(ui, "", Rect2(28, 155, 820, 26), 17, CREAM)
-	hud.timer = label(ui, "", Rect2(995, 157, 250, 32), 24, GOLD)
+	hud.timer_icon = icon(ui, "clock", Rect2(966, 159, 26, 26))
+	hud.timer = label(ui, "", Rect2(998, 157, 250, 32), 24, GOLD)
 	var skill_panel := panel(ui, Rect2(24, 594, 236, 76), Color(0.04, 0.1, 0.18, 0.92), 12)
 	hud.character = label(skill_panel, "", Rect2(14, 9, 210, 25), 18, TEAL)
 	hud.skill = label(skill_panel, "", Rect2(14, 41, 210, 23), 14, GOLD)
@@ -236,12 +247,17 @@ func build_hud() -> void:
 	hud.boss_bar.position = Vector2(15, 36)
 	hud.boss_bar.size = Vector2(408, 12)
 	hud.boss_bar.show_percentage = false
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = Color("eb829c")
-	fill.set_corner_radius_all(6)
-	hud.boss_bar.add_theme_stylebox_override("fill", fill)
 	hud.boss_panel.add_child(hud.boss_bar)
 	label(ui, "A/D Mover   Espacio Salto   Shift Correr   S Deslizar   J Atacar   Q Habilidad   E Interactuar   Esc Pausa", Rect2(28, 692, 1220, 20), 12, Color("d5e3dd"))
+
+func icon(parent: Node, kind: String, rect: Rect2) -> Control:
+	var node := Control.new()
+	node.set_script(HudIcon)
+	node.kind = kind
+	node.position = rect.position
+	node.size = rect.size
+	parent.add_child(node)
+	return node
 
 func say(who: String, message: String, duration: float = 5.0) -> void:
 	dialogue_who = who
@@ -264,17 +280,28 @@ func _process(delta: float) -> void:
 	if screen == "playing" and is_instance_valid(world):
 		dialogue_timer = maxf(0, dialogue_timer - delta)
 		if not hud.is_empty():
-			hud.health.text = "♥ ".repeat(maxi(0, world.player.health)) + "♡ ".repeat(maxi(0, world.player.max_health - world.player.health))
+			hud.hearts.set_counts(maxi(0, world.player.health), world.player.max_health)
 			hud.lives.text = "%d VIDAS" % int(Progress.data.lives)
-			hud.credits.text = "C  %03d" % int(Progress.data.credits)
+			hud.credits.text = "%03d" % int(Progress.data.credits)
 			hud.score.text = "%06d PUNTOS" % int(Progress.data.score)
-			hud.items.text = "USB  %d/8     TÍTULO  %d/4" % [Progress.data.usb.size(), Progress.data.fragments.size()]
-			hud.power.text = ("DOBLE SALTO   " if Progress.data.double_jump else "") + ("BECA   " if Progress.data.shield else "") + ("CAFÉ %ds" % int(world.player.coffee) if world.player.coffee > 0 else "")
+			hud.usb.text = "%d/8" % Progress.data.usb.size()
+			hud.docs.text = "TÍTULO %d/4" % Progress.data.fragments.size()
+			var power_x := 28.0
+			for power in hud.powers:
+				var active: bool = {"feather": Progress.data.double_jump, "shield": Progress.data.shield, "coffee": world.player.coffee > 0}[power.kind]
+				power.icon.visible = active
+				power.label.visible = active
+				if power.kind == "coffee": power.label.text = "CAFÉ %ds" % int(world.player.coffee)
+				if active:
+					power.icon.position.x = power_x
+					power.label.position.x = power_x + 30
+					power_x += power.width
 			hud.objective.text = "→  " + world.objective()
 			hud.character.text = world.player.character.name
 			hud.skill.text = "Q  " + world.player.character.skill + (" · listo" if world.player.ability_cooldown <= 0 else " · %ds" % ceili(world.player.ability_cooldown))
 			hud.section.text = world.extension.current_name + "   ·   %d%%" % int(clampf(world.player.position.x / world.level_length, 0, 1) * 100)
 			hud.timer.text = "ENTREGA  %.1f s" % world.extension.trial_remaining if world.extension.trial_active else ""
+			hud.timer_icon.visible = world.extension.trial_active
 			hud.dialogue.visible = dialogue_timer > 0
 			hud.speaker.text = dialogue_who
 			hud.message.text = dialogue_text

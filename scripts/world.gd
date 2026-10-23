@@ -247,9 +247,13 @@ func player_attack() -> void:
 		if player.attack_hits.has(id): continue
 		var offset: Vector2 = enemy.position - player.position
 		if absf(offset.x) < 90 and absf(offset.y) < 72 and offset.x * player.facing > -18:
-			if enemy.hit(): player.attack_hits[id] = true
+			if enemy.hit():
+				player.attack_hits[id] = true
+				player.on_hit_confirmed(enemy)
 	if is_instance_valid(boss) and not player.attack_hits.has(boss.get_instance_id()) and player.position.distance_to(boss.position) < 110:
-		if boss.hit(): player.attack_hits[boss.get_instance_id()] = true
+		if boss.hit():
+			player.attack_hits[boss.get_instance_id()] = true
+			player.on_hit_confirmed(boss)
 
 func say(who: String, message: String, duration: float = 5.0) -> void:
 	if app != null: app.say(who, message, duration)

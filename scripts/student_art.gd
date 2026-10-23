@@ -20,14 +20,23 @@ func _draw() -> void:
 	var skin := Color(profile.skin)
 	var moving: bool = absf(actor.velocity.x) > 20 and actor.is_on_floor()
 	var gait := 15.0 if actor.character_id == "valeria" else (11.0 if actor.character_id == "diego" else 13.0)
-	var stride: float = sin(t * (gait * 1.45 if absf(actor.velocity.x) > 300 else gait)) * (11 if moving else 0)
-	var bob: float = absf(sin(t * 13)) * 2 if moving else sin(t * 3) * 1.3
+	# Gameplay actors provide a pose; menu portraits fall back to the idle defaults.
+	var pose_scale: Vector2 = actor.pose_scale if "pose_scale" in actor else Vector2.ONE
+	var tilt: float = actor.pose_tilt if "pose_tilt" in actor else 0.0
+	var phase: float = actor.run_phase if "run_phase" in actor else t * gait
+	var frozen: bool = "hitstop" in actor and actor.hitstop > 0
+	var stride: float = sin(phase) * ((15.0 if absf(actor.velocity.x) > 300 else 11.0) if moving else 0.0)
+	var lift_a: float = maxf(0, cos(phase)) * 7 if moving else 0.0
+	var lift_b: float = maxf(0, -cos(phase)) * 7 if moving else 0.0
+	var bob: float = absf(sin(phase)) * 2.5 if moving else sin(t * 3) * 1.3
 	var bend: float = 22 if actor.crouched else 0
 	var airborne: bool = not actor.is_on_floor()
 	var rising: bool = airborne and actor.velocity.y < 0
 	draw_set_transform(Vector2.ZERO)
 	draw_ellipse_shadow()
-	draw_set_transform(Vector2(0, bob), 0, Vector2(actor.facing, 1))
+	var jolt := Vector2(randf_range(-1.5, 1.5), 0) if frozen else Vector2.ZERO
+	# Scale and tilt pivot on the feet, which is the node origin.
+	draw_set_transform(Vector2(0, bob) + jolt, tilt, Vector2(actor.facing * pose_scale.x, pose_scale.y))
 	if actor.coffee > 0:
 		for i in 3:
 			draw_line(Vector2(-24 - i * 9, -24 + i * 8), Vector2(-42 - i * 9, -24 + i * 8), Color("ffda75"), 2, true)
@@ -42,13 +51,18 @@ func _draw() -> void:
 	draw_arc(Vector2(-14, -48 + bend), 6, PI, TAU, 12, INK, 2, true)
 	line(Vector2(-7, -43 + bend), Vector2(-15 + stride * 0.4, -26 + bend), Color("c88c6e"), 6)
 	var hip := Vector2(0, -23 + bend * 0.5)
-	var foot_a := Vector2(-7 + stride, -4)
-	var foot_b := Vector2(9 - stride, -4)
+	var foot_a := Vector2(-7 + stride, -4 - lift_a)
+	var foot_b := Vector2(9 - stride, -4 - lift_b)
 	if airborne:
 		foot_a = Vector2(-13, -15 if rising else -6)
 		foot_b = Vector2(11, -5 if rising else -13)
-	line(hip, foot_a, Color("354b70"), 9)
-	line(hip, foot_b, Color("48648b"), 9)
+	# Two-segment legs: knees bend forward and rise with the swinging foot.
+	var knee_a := hip.lerp(foot_a, 0.5) + Vector2(4 + lift_a * 0.5, 0)
+	var knee_b := hip.lerp(foot_b, 0.5) + Vector2(4 + lift_b * 0.5, 0)
+	line(hip, knee_a, Color("354b70"), 9)
+	line(knee_a, foot_a, Color("354b70"), 9)
+	line(hip, knee_b, Color("48648b"), 9)
+	line(knee_b, foot_b, Color("48648b"), 9)
 	draw_style_box(box(Color("f6eee3"), 3, 2), Rect2(foot_a.x - 5, foot_a.y - 3, 16, 7))
 	draw_style_box(box(Color("f6eee3"), 3, 2), Rect2(foot_b.x - 5, foot_b.y - 3, 16, 7))
 	for foot in [foot_a, foot_b]:
@@ -67,6 +81,10 @@ func _draw() -> void:
 	if actor.attack_time > 0:
 		hand = Vector2(37, -36 + bend)
 		draw_arc(Vector2(22, -34), 29, -1.1, 1.1, 18, Color("b3fff0"), 5, true)
+		if frozen:
+			for i in 6:
+				var ray := Vector2.from_angle(i * TAU / 6 + 0.3)
+				draw_line(Vector2(44, -36) + ray * 6, Vector2(44, -36) + ray * 15, Color("fff6cf"), 3, true)
 	elif actor.celebrating:
 		hand = Vector2(23, -75)
 	elif airborne:
