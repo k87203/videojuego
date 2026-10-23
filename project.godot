@@ -1,0 +1,34 @@
+; TECNO AVENTURA III — Godot 4
+config_version=5
+
+[application]
+config/name="TECNO AVENTURA III: LA MISIÓN DEL TÍTULO"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+config/icon="res://assets/art/icon.svg"
+
+[autoload]
+Progress="*res://scripts/progress.gd"
+Sound="*res://scripts/sound.gd"
+MusicManager="*res://scripts/music_manager.gd"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.035, 0.075, 0.14, 1)
+
+[physics]
+common/physics_ticks_per_second=60
+
+[layer_names]
+2d_physics/layer_1="World"
+2d_physics/layer_2="Student"
+2d_physics/layer_3="Enemies"

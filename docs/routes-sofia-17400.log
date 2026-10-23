@@ -1,0 +1,6 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Level 1 (sofia): PASS; x=22203.4; previous=(22197.28, 609.9338); lives_lost=0; key=false; switch=false; duration=13.1s; trials=0; streamed=6
+Level 2 (sofia): PASS; x=22203.4; previous=(22197.24, 609.9338); lives_lost=0; key=false; switch=false; duration=13.1s; trials=0; streamed=6
+Level 3 (sofia): PASS; x=22203.4; previous=(22197.27, 609.9338); lives_lost=0; key=false; switch=false; duration=13.1s; trials=0; streamed=6
+Level 4 (sofia): PASS; x=22203.4; previous=(22197.28, 609.9338); lives_lost=0; key=false; switch=false; duration=13.1s; trials=0; streamed=6

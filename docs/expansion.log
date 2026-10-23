@@ -1,0 +1,45 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Four animated character portraits
+PASS: Character selection button updates profile
+PASS: alex profile and health
+PASS: alex reaches its running speed
+PASS: alex respects locked double jump
+PASS: Alex dash accelerates through actual input
+PASS: alex ability cannot bypass cooldown
+PASS: valeria profile and health
+PASS: valeria reaches its running speed
+PASS: Valeria air jump works before eagle feather
+PASS: valeria ability cannot bypass cooldown
+PASS: diego profile and health
+PASS: diego reaches its running speed
+PASS: diego respects locked double jump
+PASS: Diego shield absorbs a real hit
+PASS: diego ability cannot bypass cooldown
+PASS: sofia profile and health
+PASS: sofia reaches its running speed
+PASS: sofia respects locked double jump
+PASS: Sofia radar activates through input
+PASS: sofia ability cannot bypass cooldown
+PASS: Streamed checkpoint activates from collision
+PASS: Delivery starts automatically on entry
+PASS: Crossing delivery arch records success
+PASS: Timeout returns to beacon without losing a life
+PASS: Continue restores expanded checkpoint and delivery seals
+PASS: Sofia detects hidden reward at range
+PASS: Streaming preserves rewards and defeated enemy IDs
+PASS: Streaming limits active chunks to six
+PASS: Standing on unstable platform collapses its collider
+PASS: Collapsed platform restores for retries
+PASS: Exploration chooses level theme
+PASS: Compressed music loops over its full arrangement
+PASS: Difficulty selects synchronized intense arrangement
+PASS: Pursuit crossfades into tension music
+PASS: Boss music takes priority over chase
+PASS: Third boss phase immediately raises musical intensity
+PASS: Music hysteresis prevents rapid toggling
+PASS: Music returns smoothly after danger ends
+PASS: Crossfade maintains power without an audible volume hole
+PASS: Disk save restores character and expanded progression
+PASS: Legacy save migrates without losing existing score
+EXPANSION RESULT: 42 checks, 0 failures

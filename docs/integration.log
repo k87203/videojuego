@@ -1,0 +1,61 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Main menu constructed
+PASS: Level selection opens
+PASS: Independent audio buses
+PASS: Player settles on floor
+PASS: Accelerated horizontal movement
+PASS: Deceleration reaches rest
+PASS: Buffered jump fires immediately after landing
+PASS: Coyote jump works after leaving edge
+PASS: Jump starts upward
+PASS: Early release shortens jump
+PASS: Unlocked air jump
+PASS: Slide changes collision capsule
+PASS: Scholarship absorbs one hit
+PASS: Damage removes health
+PASS: 100 credits grant one life
+PASS: Fall respawns at checkpoint
+PASS: Pause freezes gameplay
+PASS: Resume restores physics
+PASS: Last hit opens Game Over and records exhausted lives
+PASS: Game Over retry restores four lives and active controls
+PASS: Enemy senses and chases player
+PASS: Enemy searches and returns after losing player
+PASS: Level 1 has populated geometry and rewards
+PASS: Level 1 rejects premature completion
+PASS: Level 1 provides title fragment
+PASS: Level 1 reaches results
+PASS: Level 2 has populated geometry and rewards
+PASS: Level 2 rejects premature completion
+PASS: Credential pickup unlocks library
+PASS: Academic question grants reward
+PASS: Continue restores checkpoint and solved academic question
+PASS: Level 2 provides title fragment
+PASS: Level 2 reaches results
+PASS: Level 3 has populated geometry and rewards
+PASS: Level 3 rejects premature completion
+PASS: Switch opens laboratory gate
+PASS: Continue restores laboratory checkpoint and gate switch
+PASS: Boss 3 activates arena
+PASS: Boss shield rejects damage
+PASS: Aztli exposes boss
+PASS: Boss 3 defeated and arena unlocked
+PASS: Level 3 provides title fragment
+PASS: Level 3 reaches results
+PASS: Level 4 has populated geometry and rewards
+PASS: Level 4 rejects premature completion
+PASS: Boss 4 activates arena
+PASS: Boss shield rejects damage
+PASS: Aztli exposes boss
+PASS: Boss 4 defeated and arena unlocked
+PASS: Final boss executes all three phases
+PASS: Level 4 provides title fragment
+PASS: Level 4 reaches results
+PASS: Campaign tracks all four documents and graduation
+PASS: Graduation finale opens
+PASS: Save overwrites atomically and restores progression
+PASS: Saved fragment IDs still unlock all four completion gates
+PASS: Checkpoint data survives real save-file reload
+PASS: Corrupt save falls back safely
+INTEGRATION RESULT: 58 checks, 0 failures

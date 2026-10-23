@@ -1,0 +1,8 @@
+COMBAT RESULT level=3 character=alex PASS time=9.0s hearts=1 damage=2 deaths=0 phases=[1]
+COMBAT RESULT level=4 character=alex PASS time=12.0s hearts=2 damage=1 deaths=0 phases=[1, 2, 3]
+COMBAT RESULT level=3 character=valeria PASS time=8.9s hearts=1 damage=2 deaths=0 phases=[1]
+COMBAT RESULT level=4 character=valeria PASS time=12.0s hearts=2 damage=1 deaths=0 phases=[1, 2, 3]
+COMBAT RESULT level=3 character=diego PASS time=9.1s hearts=3 damage=1 deaths=0 phases=[1]
+COMBAT RESULT level=4 character=diego PASS time=12.0s hearts=4 damage=0 deaths=0 phases=[1, 2, 3]
+COMBAT RESULT level=3 character=sofia PASS time=8.8s hearts=1 damage=2 deaths=0 phases=[1]
+COMBAT RESULT level=4 character=sofia PASS time=12.0s hearts=2 damage=1 deaths=0 phases=[1, 2, 3]
