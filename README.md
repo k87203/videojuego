@@ -33,14 +33,26 @@ Se reutilizan los cuatro enemigos existentes sin cambiar sus valores: Tarea (cam
 | El Profe de Cálculo | lanzador estático de integrales en arco | parábola punteada exacta y tiza en alto | 2 golpes |
 | La Revisión de Tarea | embestidor: se detiene y carga dejando hojas | línea roja al frente | 2 golpes; salta la carga |
 | El Maestro de Programación | suelta bugs que corren por el suelo y caen en los bordes | pantalla roja y suelo marcado | 2 golpes; los bugs se saltan o se rompen con J |
-| El Borrador | cuelga del techo y cae | tiembla y aparece su sombra roja en el suelo | golpearlo cuando queda aturdido |
+| El Sello de Servicios Escolares | cuelga del techo y cae («¡SELLADO!») | tiembla y aparece su sombra roja en el suelo | golpearlo mientras queda pegado |
+| El Monitor con Pantallazo | cae del techo en el laboratorio | parpadea en rojo | golpearlo en el suelo |
 | La Carpeta Blindada | escudado | flecha «písame» | solo con pisotón; golpes y barridas se bloquean |
 
-- **Introducción gradual** (`ENEMY_ROSTER` en expansion_data.gd): nivel 1 Examen, Reloj y Profe de Cálculo; nivel 2 suma Revisión de Tarea y Borrador; nivel 3 suma Maestro de Programación y Carpeta Blindada; nivel 4 los mezcla todos. Aztli presenta cada arquetipo nuevo la primera vez que aparece. Las introducciones originales de cada nivel no cambian.
+- **Introducción gradual** (`ENEMY_ROSTER` en expansion_data.gd): nivel 1 Examen, Reloj y Profe de Cálculo; nivel 2 suma Revisión de Tarea y Sello; nivel 3 suma Maestro de Programación y Carpeta Blindada; nivel 4 los mezcla todos. Aztli presenta cada arquetipo nuevo la primera vez que aparece. Las introducciones originales de cada nivel no cambian.
+
+**Etapa 2b — Enemigos con personalidad, encuentros y el Prefecto**
+
+Tras jugarla, los enemigos sueltos se sentían aburridos. Se revisó como referencia *Pánico de Papel* (Y:\rivera\proyecto_escuela_juego-main) sin modificarlo ni copiar código, arte, personajes, secuencias ni música. De ella se tomaron principios generales: ataques coreografiados, cada amenaza pide un movimiento distinto y los enemigos tienen personalidad. El Borrador de la Etapa 2 se reemplazó por el Sello porque se parecía demasiado a su borrador gigante.
+
+- **Personalidad:** cada arquetipo grita una frase propia al detectarte («¡Saquen una hoja!», «¡Esto viene en el examen!», «¡En mi máquina sí compila!», «¡Vuelva mañana!»…), espaciadas para que no se encimen. Tras atacar, los arquetipos nuevos quedan mareados (estrellas) cerca de un segundo: es el momento de pegarles.
+- **Ataques por carril:** el Profe rota integral en arco, baja (saltar) y alta (agacharse); la Revisión alterna embestida y una ola de hojas a ras de suelo; el Maestro alterna bugs bajos y ventanas de error altas. Cada aviso marca el carril exacto y las primeras veces dice «¡SALTA!» o «¡AGÁCHATE!». Un estudiante agachado mide 30 px; lo alto pasa a partir de 37–39 px.
+- **Habilidades útiles:** el impulso de Alex golpea lo que atraviesa y lo vuelve inmune 0.24 s; la beca de Diego lanza una onda que cancela ataques cercanos y deshace proyectiles; el radar de Sofía da 35 % más tiempo a los avisos cercanos.
+- **Encuentros armados** (`ENCOUNTERS`), con cartel grande y consejo de Aztli: **Clase de Cálculo** (pupitres como plataformas, Profe y Examen Sorpresa; niveles 1, 2 y 4), **Ventanilla de Servicios Escolares** (fila con cordones, dos Sellos y la Carpeta Blindada o una Tarea; niveles 2, 3 y 4) y **Laboratorio de Cómputo** (Monitores que caen y el Maestro de Programación; niveles 3 y 4).
+- **El Prefecto:** en los distritos de persecución (7 y 12 de cada nivel) persigue al estudiante al 90 % de su carrera, así que caminar te alcanza y correr te salva. La carrera enseña saltos (cubetas), luego deslizamientos (reportes volando) y al final los mezcla. Al final del pasillo resbala con su propio letrero de piso mojado: «¡PREFECTO FUERA DE COMBATE!», +500. Reaparecer reinicia la persecución.
+- **Bots:** el de rutas salta lo bajo y se desliza bajo lo alto, como un jugador. El de duelos también lee los carriles.
 - **Validador:** tools/check.py audita que cada tipo del reparto tenga especificación, dibujo y presentación de Aztli.
 - **Matriz de recorridos:** a los 32 tramos geométricos se suman 16 recorridos completos sin invulnerabilidad (4 estudiantes × 4 niveles), en docs/route-encounter-results.txt. La salud se restaura al entrar a cada tramo, así que una muerte señalaría un tramo imposible con salud llena. Resultado: 16 de 16; el peor tramo costó 2 corazones (Diego, el más lento, que tiene 4).
 - **Bot con control aéreo:** la matriz nueva destapó una caída de Valeria al foso de la introducción del nivel 3 (con café, a 528 px/s). Ya ocurría antes de esta etapa y no la causa ningún enemigo; la ruta nunca se había probado con Valeria. El bot mantenía → siempre; ahora, si no le quedan saltos y su punto de aterrizaje no tiene suelo, retrocede como lo haría un jugador. El verificador ejecuta los 16 recorridos aunque alguno falle y luego los reporta todos.
-- **Pruebas:** mejoras_suite.gd suma el reparto por nivel, los avisos, las hitbox, las reglas de daño, los proyectiles y 24 duelos (4 estudiantes × 6 arquetipos con salud normal), en docs/enemy-duels.txt. tests/enemy_sheet.tscn genera docs/enemigos-05.png.
+- **Pruebas:** mejoras_suite.gd suma el reparto por nivel, los avisos, las hitbox, las reglas de daño, los proyectiles y 24 duelos (4 estudiantes × 6 arquetipos con salud normal), en docs/enemy-duels.txt. Desde la etapa 2b también cubre frases, mareo, carriles, habilidades, los 11 encuentros y el Prefecto: alcanza a quien se queda quieto, no a quien corre, y resbala al final. tests/enemy_sheet.tscn genera docs/enemigos-05.png.
 
 ## Correcciones de revisión (posteriores a la 0.4.1)
 

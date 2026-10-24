@@ -42,10 +42,16 @@ const ENEMY_TIPS := {
 	"calc": "El Profe de Cálculo lanza integrales en arco. La curva punteada marca dónde caerán.",
 	"review": "La Revisión de Tarea se detiene, marca una línea roja y embiste. ¡Salta por encima!",
 	"coder": "El Maestro de Programación suelta bugs que corren por el suelo. Sáltalos o rómpelos con J.",
-	"dropper": "Un Borrador cuelga del techo. Si tiembla y aparece una sombra roja, sigue corriendo.",
+	"stamp": "¡Un Sello de Servicios Escolares! Si tiembla y aparece una sombra roja, sigue corriendo.",
+	"monitor": "Ese monitor cuelga de su cable. Cuando parpadea en rojo, ¡muévete!",
 	"shield": "La Carpeta Blindada bloquea golpes y barridas. ¡Solo cae si le saltas encima!",
 }
 var introduced: Dictionary = {}
+## Enemy lines are spaced out so two archetypes never talk over each other.
+var voice_cooldown := 0.0
+## The first few low/high shots of a run spell out the verb ("¡SALTA!" / "¡AGÁCHATE!").
+var lane_hints := {"low": 0, "high": 0}
+var prefect
 
 func _ready() -> void:
 	has_credential = "2_credential" in Progress.data.collected
@@ -274,6 +280,50 @@ func player_attack() -> void:
 func say(who: String, message: String, duration: float = 5.0) -> void:
 	if app != null: app.say(who, message, duration)
 
+func banner(text: String, color: Color = Color("ffe08a")) -> void:
+	if app != null and app.has_method("banner"): app.banner(text, color)
+
+func enemy_voice(enemy) -> void:
+	if voice_cooldown > 0 or absf(enemy.position.x - player.position.x) > 760: return
+	var lines: Array = Enemy.VOICE.get(enemy.kind, [])
+	if lines.is_empty(): return
+	enemy.say(lines[int(absf(enemy.home.x)) % lines.size()])
+	voice_cooldown = 2.5
+
+func take_lane_hint(lane: String) -> bool:
+	if lane_hints.get(lane, 0) >= 3: return false
+	lane_hints[lane] = lane_hints.get(lane, 0) + 1
+	return true
+
+func shockwave(origin: Vector2, radius: float) -> void:
+	# Diego's scholarship burst: pushes back nearby threats and cancels their warnings.
+	fx.ring(origin + Vector2(0, -30), Color("78e8e0"), radius)
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not e.dead and e.position.distance_to(origin) < radius: e.interrupt(0.9)
+	for shot in get_tree().get_nodes_in_group("projectiles"):
+		if shot.position.distance_to(origin + Vector2(0, -30)) < radius: shot.smash()
+
+func start_prefect(slip_x: float, district: int) -> void:
+	if is_instance_valid(prefect): return
+	prefect = Node2D.new()
+	prefect.set_script(preload("res://scripts/prefect.gd"))
+	prefect.world = self
+	prefect.slip_x = slip_x
+	prefect.district = district
+	prefect.position = Vector2(player.position.x - 450, 610)
+	add_child(prefect)
+
+func stop_prefect() -> void:
+	if is_instance_valid(prefect) and prefect.state != "slip": prefect.queue_free()
+	prefect = null
+
+func prefect_defeated() -> void:
+	Progress.data.score += 500
+	banner("¡PREFECTO FUERA DE COMBATE!", Color("9affdf"))
+	say("AZTLI", "¡Resbaló con su propio letrero de piso mojado! Sigamos, que aún hay entregas.", 4)
+	# Recorded by the Prefecto's own district: the student may already be in the next one.
+	if is_instance_valid(extension) and is_instance_valid(prefect): extension.prefect_done[prefect.district] = true
+
 func save_snapshot() -> void:
 	if completed: return
 	var solved_quiz := false
@@ -296,6 +346,7 @@ func _process(delta: float) -> void:
 	level_time += delta
 	intro_time += delta
 	shake = move_toward(shake, 0, delta * 30)
+	voice_cooldown = maxf(0, voice_cooldown - delta)
 	player.camera.offset = Vector2(randf_range(-shake, shake), randf_range(-shake, shake))
 	chase_timer -= delta
 	if chase_timer <= 0:
@@ -339,6 +390,7 @@ func respawn() -> void:
 	for e in get_tree().get_nodes_in_group("enemies"):
 		e.reset_to_home()
 	for shot in get_tree().get_nodes_in_group("projectiles"): shot.queue_free()
+	stop_prefect()
 	arena_closed = false
 	if is_instance_valid(boss) and not boss.dead:
 		boss.position = boss.home

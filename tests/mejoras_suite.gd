@@ -35,6 +35,11 @@ func run() -> void:
 	await stage2_damage_rules()
 	await stage2_projectiles()
 	await stage2_duels()
+	await stage2b_personality()
+	await stage2b_lanes()
+	await stage2b_abilities()
+	await stage2b_encounters()
+	await stage2b_prefect()
 	print("MEJORAS RESULT: %d checks, %d failures" % [checks, failures.size()])
 	var report := FileAccess.open("res://docs/mejoras-results.txt", FileAccess.WRITE)
 	if report: report.store_string("%d checks; %d failures\n%s\n" % [checks, failures.size(), "\n".join(failures)])
@@ -210,7 +215,8 @@ func stage1_interface() -> void:
 
 # ---------- Stage 2: enemy variety ----------
 const Data = preload("res://scripts/expansion_data.gd")
-const NEW_KINDS := ["hopper", "calc", "review", "coder", "dropper", "shield"]
+## "stamp" replaced the 0.5 eraser ("dropper") on purpose: the eraser resembled the reference game.
+const NEW_KINDS := ["hopper", "calc", "review", "coder", "stamp", "shield"]
 
 func clear_combat() -> void:
 	for group in ["enemies", "projectiles"]:
@@ -271,7 +277,7 @@ func stage2_telegraphs() -> void:
 	var w = await arena()
 	var p = w.player
 	p.invulnerable = 999
-	var spots := {"hopper": Vector2(50760, 610), "calc": Vector2(50900, 610), "review": Vector2(50850, 610), "coder": Vector2(50900, 610), "dropper": Vector2(50600, 330), "shield": Vector2(50720, 610)}
+	var spots := {"hopper": Vector2(50760, 610), "calc": Vector2(50900, 610), "review": Vector2(50850, 610), "coder": Vector2(50900, 610), "stamp": Vector2(50600, 330), "shield": Vector2(50720, 610)}
 	for kind in spots:
 		await clear_combat()
 		p.position = Vector2(50600, 610)
@@ -319,17 +325,17 @@ func stage2_damage_rules() -> void:
 	await clear_combat()
 	p.position = Vector2(50600, 610)
 	p.facing = 1
-	var eraser = w.spawn_enemy("dropper", Vector2(50640, 330))
+	var eraser = w.spawn_enemy("stamp", Vector2(50640, 330))
 	await ticks(1)
 	await swing_now(p)
-	check(is_instance_valid(eraser) and eraser.life == 1, "A hanging eraser is out of reach")
+	check(is_instance_valid(eraser) and eraser.life == 1, "A hanging stamp is out of reach")
 	p.position.x = 50560
 	for f in 120:
 		await ticks(1)
 		if eraser.drop_state == "dazed": break
-	check(eraser.drop_state == "dazed" and absf(eraser.position.y - 610) < 4, "The eraser drops onto the floor below and stays dazed")
+	check(eraser.drop_state == "dazed" and absf(eraser.position.y - 610) < 4, "The stamp drops onto the floor below and stays stuck")
 	await swing_now(p)
-	check(not is_instance_valid(eraser) or eraser.dead, "A dazed eraser can be defeated")
+	check(not is_instance_valid(eraser) or eraser.dead, "A stuck stamp can be defeated")
 	await clear_combat()
 	p.position = Vector2(50600, 610)
 	var calc = w.spawn_enemy("calc", Vector2(50660, 610))
@@ -405,7 +411,7 @@ func duel(character: String, kind: String) -> Dictionary:
 	var w = await arena(character)
 	var p = w.player
 	p.invulnerable = 0
-	var spot := Vector2(51000, 330) if kind == "dropper" else Vector2(51000, 610)
+	var spot := Vector2(51000, 330) if kind == "stamp" else Vector2(51000, 610)
 	var e = w.spawn_enemy(kind, spot)
 	var damage_before: int = w.damage_taken
 	var jump_hold := 0
@@ -424,11 +430,12 @@ func duel(character: String, kind: String) -> Dictionary:
 		var want := 0.0
 		var jump := false
 		var attack := false
+		var duck := false
 		match kind:
 			"shield":
 				want = toward
 				jump = p.is_on_floor() and absf(dx) < 130
-			"dropper":
+			"stamp":
 				match e.drop_state:
 					"hang": want = toward if absf(dx) > 8 else 0.0
 					"warn", "fall": want = -toward if absf(dx) < 110 else 0.0
@@ -439,10 +446,18 @@ func duel(character: String, kind: String) -> Dictionary:
 				want = toward if absf(dx) > 55 else 0.0
 				attack = absf(dx) < 85
 				if kind == "review" and e.windup > 0 and absf(dx) < 340: jump = p.is_on_floor()
+				# Read shot lanes like a player: jump low shots, crouch under high ones.
 				for shot in get_tree().get_nodes_in_group("projectiles"):
 					var rel: Vector2 = shot.position - (p.position + Vector2(0, -20))
-					if shot.glyph == "bug" and absf(rel.x) < 120 and absf(rel.y) < 90 and signf(shot.velocity.x) == -signf(rel.x): jump = p.is_on_floor()
+					var incoming: bool = signf(shot.velocity.x) == -signf(rel.x) and absf(rel.x) < 150
+					if incoming and shot.lane == "high": duck = true
+					elif incoming and absf(rel.y) < 90 and (shot.lane == "low" or shot.glyph == "bug"): jump = p.is_on_floor()
 		if attack and signf(dx) != p.facing: want = toward
+		if duck:
+			want = 0.0
+			jump = false
+			Input.action_press("crouch")
+		else: Input.action_release("crouch")
 		if want > 0:
 			Input.action_release("left")
 			Input.action_press("right")
@@ -467,3 +482,216 @@ func duel(character: String, kind: String) -> Dictionary:
 	var outcome := {"character": character, "kind": kind, "won": won and w.lives_lost == 0, "time": frames_used / 60.0, "hits": w.damage_taken - damage_before}
 	await clear_combat()
 	return outcome
+
+# ---------- Stage 2b: personality, lanes, abilities, encounters and El Prefecto ----------
+const EnemyScript = preload("res://scripts/enemy.gd")
+
+func wait_for(condition: Callable, frames: int) -> bool:
+	for f in frames:
+		if condition.call(): return true
+		await ticks(1)
+	return condition.call()
+
+func stage2b_personality() -> void:
+	var w = await arena()
+	var p = w.player
+	p.invulnerable = 999
+	var calc = w.spawn_enemy("calc", Vector2(50900, 610))
+	var spoke: bool = await wait_for(func(): return calc.speech_time > 0, 120)
+	check(spoke and calc.speech in EnemyScript.VOICE.calc, "El Profe de Cálculo speaks when he spots the student (%s)" % calc.speech)
+	var second = w.spawn_enemy("coder", Vector2(50300, 610))
+	await ticks(40)
+	check(second.voiced and second.speech_time == 0, "Lines are spaced out: a second archetype waits its turn")
+	var dizzy: bool = await wait_for(func(): return calc.attacks_released > 0 and calc.windup <= 0 and calc.recovery > 0.8, 240)
+	check(dizzy and calc.state == calc.State.ATTACK, "After attacking, the Profe stays dazed for about a second")
+	var life: int = calc.life
+	p.position = Vector2(calc.position.x - 50, 610)
+	p.facing = 1
+	await swing_now(p)
+	check(calc.life == life - 1, "The dazed window is an opening to strike")
+
+func stage2b_lanes() -> void:
+	var w = await arena()
+	var p = w.player
+	p.invulnerable = 999
+	var calc = w.spawn_enemy("calc", Vector2(50950, 610))
+	var lanes: Array = []
+	var labels: Array = []
+	var seen := {}
+	for f in 900:
+		await get_tree().physics_frame
+		if calc.windup > 0 and not seen.has(calc.attack_serial):
+			seen[calc.attack_serial] = true
+			labels.append(calc.lane_label)
+		for shot in get_tree().get_nodes_in_group("projectiles"):
+			if not seen.has(shot):
+				seen[shot] = true
+				lanes.append(shot.lane if shot.lane != "" else "lob")
+		if lanes.size() >= 3: break
+	check(lanes.slice(0, 3) == ["lob", "low", "high"], "El Profe rotates arc, low and high integrals (%s)" % str(lanes))
+	check("¡SALTA!" in labels and "¡AGÁCHATE!" in labels, "The first lane shots spell out the verb to use")
+	await clear_combat()
+	p.position = Vector2(50600, 610)
+	p.invulnerable = 0
+	var health: int = p.health
+	w.fire(Vector2(50800, 610 - 46), Vector2(-300, 0), Color.WHITE, {"lane": "high", "glyph": "error"})
+	await ticks(50)
+	check(p.health == health - 1, "A high shot hits a standing student")
+	p.invulnerable = 0
+	health = p.health
+	Input.action_press("crouch")
+	await ticks(3)
+	w.fire(Vector2(50800, 610 - 46), Vector2(-300, 0), Color.WHITE, {"lane": "high", "glyph": "error"})
+	await ticks(50)
+	Input.action_release("crouch")
+	check(p.health == health, "Crouching clears a high shot")
+	await ticks(10)
+	p.invulnerable = 0
+	health = p.health
+	w.fire(Vector2(50800, 610 - 12), Vector2(-300, 0), Color.WHITE, {"lane": "low", "glyph": "∫"})
+	await ticks(50)
+	check(p.health == health - 1, "A low shot hits a standing student")
+	p.invulnerable = 0
+	health = p.health
+	w.fire(Vector2(50900, 610 - 12), Vector2(-300, 0), Color.WHITE, {"lane": "low", "glyph": "∫"})
+	await ticks(50)
+	Input.action_press("jump")
+	await ticks(30)
+	Input.action_release("jump")
+	await wait_for(func(): return p.is_on_floor(), 60)
+	check(p.health == health, "Jumping clears a low shot")
+	await clear_combat()
+	p.invulnerable = 0
+	p.health = p.max_health
+	health = p.health
+	var bucket := Area2D.new()
+	bucket.set_script(preload("res://scripts/lane_obstacle.gd"))
+	bucket.world = w
+	bucket.lane = "high"
+	bucket.position = Vector2(50600, 610)
+	p.position = Vector2(50600, 610)
+	p.velocity = Vector2.ZERO
+	p.health = p.max_health
+	Input.action_press("crouch")
+	await ticks(3)
+	w.add_child(bucket)
+	await ticks(20)
+	check(p.health == health, "A crouched student fits under the flying reports")
+	Input.action_release("crouch")
+	await ticks(20)
+	check(p.health == health - 1, "Standing up inside the reports hurts")
+	bucket.queue_free()
+
+func stage2b_abilities() -> void:
+	var w = await arena("alex")
+	var p = w.player
+	p.facing = 1
+	var task = w.spawn_enemy("task", Vector2(50700, 610))
+	await ticks(2)
+	task.set_physics_process(true)
+	var health: int = p.health
+	w.fire(Vector2(50760, 600), Vector2(-200, 0), Color.WHITE, {})
+	Input.action_press("ability")
+	await ticks(2)
+	Input.action_release("ability")
+	await ticks(20)
+	check((not is_instance_valid(task) or task.dead) and p.health == health, "Alex's dash strikes through an enemy and its shot unharmed")
+	w = await arena("diego")
+	p = w.player
+	Progress.data.shield = false
+	var review = w.spawn_enemy("review", Vector2(50760, 610))
+	await wait_for(func(): return review.windup > 0, 180)
+	w.fire(Vector2(50700, 570), Vector2(-150, 0), Color.WHITE, {})
+	Input.action_press("ability")
+	await ticks(2)
+	Input.action_release("ability")
+	check(review.daze > 0.5 and review.windup == 0 and get_tree().get_nodes_in_group("projectiles").filter(func(s): return not s.is_queued_for_deletion()).is_empty(), "Diego's shield burst cancels a charge and clears nearby shots")
+	w = await arena("sofia")
+	p = w.player
+	Input.action_press("ability")
+	await ticks(2)
+	Input.action_release("ability")
+	var calc = w.spawn_enemy("calc", Vector2(50900, 610))
+	await wait_for(func(): return calc.windup > 0, 180)
+	check(absf(calc.windup_total - 0.62 * 1.35) < 0.01, "Sofía's radar gives warnings 35% more time")
+
+func stage2b_encounters() -> void:
+	var expected := {"clase": ["calc", "hopper"], "ventanilla": ["stamp", "stamp"], "laboratorio": ["monitor", "monitor", "coder"]}
+	for level in Data.ENCOUNTERS:
+		for district in Data.ENCOUNTERS[level]:
+			var encounter: String = Data.ENCOUNTERS[level][district]
+			release()
+			app.start_level(level)
+			await ticks(2)
+			var w = app.world
+			w.set_process(false)
+			w.extension.set_process(false)
+			var index: int = district * Data.CHUNKS_PER_DISTRICT + 1
+			var x0: float = Data.START + index * Data.CHUNK
+			w.extension.sync_chunks(x0 + 10)
+			await ticks(1)
+			var kinds: Array = []
+			for e in get_tree().get_nodes_in_group("enemies"):
+				if not e.is_queued_for_deletion() and e.home.x >= x0 and e.home.x < x0 + Data.CHUNK: kinds.append(e.kind)
+			var decor_ok := false
+			for node in w.extension.loaded[index].get_children():
+				if node.get_script() == preload("res://scripts/encounter_decor.gd") and node.encounter == encounter: decor_ok = true
+			var has_all := true
+			for k in expected[encounter]: if kinds.count(k) < expected[encounter].count(k): has_all = false
+			check(decor_ok and has_all, "Level %d district %d hosts the %s encounter (%s)" % [level, district + 1, encounter, str(kinds)])
+	release()
+	app.start_level(2)
+	await ticks(2)
+	var w = app.world
+	w.player.invulnerable = 999
+	w.player.position = Vector2(Data.START + (1 * Data.CHUNKS_PER_DISTRICT + 1) * Data.CHUNK + 200, 610)
+	await ticks(4)
+	check(is_instance_valid(app.hud.get("banner")) and app.hud.banner.text == "CLASE DE CÁLCULO", "Entering an encounter shows its banner")
+
+func stage2b_prefect() -> void:
+	release()
+	Progress.data.character = "alex"
+	app.start_level(1)
+	await ticks(2)
+	var w = app.world
+	var p = w.player
+	w.set_process(false)
+	var begin := float(Data.START + 6 * Data.DISTRICT)
+	w.extension.set_process(false)
+	var lows := 0
+	var highs := 0
+	for index in range(6 * Data.CHUNKS_PER_DISTRICT, 7 * Data.CHUNKS_PER_DISTRICT):
+		w.extension.sync_chunks(Data.START + index * Data.CHUNK + 10)
+		await ticks(1)
+		for o in get_tree().get_nodes_in_group("obstacles"):
+			if o.is_queued_for_deletion() or o.has_meta("counted"): continue
+			o.set_meta("counted", true)
+			if o.lane == "low": lows += 1
+			else: highs += 1
+	check(lows == 5 and highs == 4, "The pursuit course teaches jumps, then slides, then mixes them (%d low, %d high)" % [lows, highs])
+	w.extension.set_process(true)
+	p.invulnerable = 999
+	p.position = Vector2(begin + 420, 610)
+	p.camera.reset_smoothing()
+	var started: bool = await wait_for(func(): return is_instance_valid(w.prefect), 30)
+	check(started and app.hud.has("banner"), "El Prefecto enters the pursuit district with a banner")
+	var walker_caught: bool = await wait_for(func(): return w.prefect.catches > 0, 400)
+	check(walker_caught, "A student who stands still gets caught")
+	w.respawn()
+	await ticks(2)
+	check(not is_instance_valid(w.prefect) or w.prefect.is_queued_for_deletion(), "Respawning clears the chase")
+	# Speed race only: obstacles with real damage are covered by the vulnerable route matrix.
+	p.invulnerable = 999
+	p.position = Vector2(begin + 420, 610)
+	p.velocity = Vector2.ZERO
+	await wait_for(func(): return is_instance_valid(w.prefect), 30)
+	var chaser = w.prefect
+	Input.action_press("right")
+	Input.action_press("run")
+	var slip_at: float = chaser.slip_x
+	var passed: bool = await wait_for(func(): return p.position.x > slip_at + 60, 1200)
+	var clean: bool = is_instance_valid(chaser) and chaser.catches == 0
+	release()
+	var slipped: bool = await wait_for(func(): return w.extension.prefect_done.has(6), 300)
+	check(passed and clean, "A running student stays ahead of El Prefecto")
+	check(slipped, "El Prefecto slips on his own wet-floor sign at the end of the district")

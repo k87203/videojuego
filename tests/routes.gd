@@ -27,7 +27,7 @@ func run() -> void:
 		if arg.begins_with("--route-character="): character_override = arg.trim_prefix("--route-character=")
 		if arg == "--route-vulnerable": vulnerable = true
 	for level in levels:
-		for action in ["right", "left", "run", "jump", "attack", "interact"]: Input.action_release(action)
+		for action in ["right", "left", "run", "jump", "attack", "interact", "crouch"]: Input.action_release(action)
 		Progress.data.character = character_override if character_override != "" else preload("res://scripts/characters.gd").IDS[level - 1]
 		app.start_level(level)
 		app.set_process(false) # UI rendering is verified separately; keep world/physics active.
@@ -80,7 +80,19 @@ func run() -> void:
 			var danger := false
 			for child in get_tree().get_nodes_in_group("hazards"):
 				if child.position.x - p.position.x > -20 and child.position.x - p.position.x < 110: danger = true
-			if p.is_on_floor() and jump_hold == 0 and (gap or danger or step_ahead or stalled > 12):
+			# Lane threats, read like a player: jump what comes low, slide under what comes high.
+			for child in get_tree().get_nodes_in_group("lane_low"):
+				var low_ahead: float = child.position.x - p.position.x
+				var low_reach: float = 110.0 + (absf(child.velocity.x) * 0.3 if "velocity" in child else 0.0)
+				if low_ahead > -20 and low_ahead < low_reach: danger = true
+			var duck := false
+			for child in get_tree().get_nodes_in_group("lane_high"):
+				var high_ahead: float = child.position.x - p.position.x
+				var high_reach: float = 150.0 + (absf(child.velocity.x) * 0.35 if "velocity" in child else 0.0)
+				if high_ahead > -45 and high_ahead < high_reach: duck = true
+			if duck and p.is_on_floor(): Input.action_press("crouch")
+			else: Input.action_release("crouch")
+			if p.is_on_floor() and jump_hold == 0 and (gap or (danger and not duck) or step_ahead or stalled > 12):
 				Input.action_press("jump")
 				jump_hold = 20
 			elif not p.is_on_floor() and gap and p.velocity.y > 40 and p.jumps < 2 and Progress.data.double_jump and jump_hold == 0:
@@ -113,7 +125,7 @@ func run() -> void:
 		report += line + "\n"
 		if not success: failed = true
 		await get_tree().process_frame
-	for action in ["right", "left", "run", "jump", "attack", "interact"]: Input.action_release(action)
+	for action in ["right", "left", "run", "jump", "attack", "interact", "crouch"]: Input.action_release(action)
 	var file := FileAccess.open("res://docs/route-encounter-results.txt" if vulnerable else ("res://docs/route-focus-results.txt" if focused else "res://docs/route-results.txt"), FileAccess.WRITE)
 	if file: file.store_string(report)
 	app.queue_free()

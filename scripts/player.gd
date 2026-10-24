@@ -217,9 +217,14 @@ func use_ability() -> void:
 		return
 	ability_cooldown = float(character.cooldown)
 	match character_id:
-		"alex": dash_time = 0.18
+		"alex":
+			dash_time = 0.18
+			# The dash slips through shots and strikes what it touches (shields still block it).
+			invulnerable = maxf(invulnerable, 0.24)
 		"valeria": jump(true)
-		"diego": Progress.data.shield = true
+		"diego":
+			Progress.data.shield = true
+			world.shockwave(position, 170)
 		"sofia": radar_time = 5
 	Sound.sfx("ability_" + character_id)
 	world.fx.burst(position + Vector2(0, -30), Color(character.accent), 20)

@@ -1,6 +1,6 @@
 extends Node
 ## Rendered sheet of every enemy archetype: idle pose and attack warning (needs a window). Output: docs/enemigos-05.png
-const KINDS := ["task", "virus", "robot", "clock", "hopper", "calc", "review", "coder", "dropper", "shield"]
+const KINDS := ["task", "virus", "robot", "clock", "hopper", "calc", "review", "coder", "stamp", "monitor", "shield"]
 var app
 
 func _ready() -> void:
@@ -41,23 +41,23 @@ func run() -> void:
 		var kind: String = KINDS[row]
 		p.position = Vector2(1700, 610)
 		p.camera.reset_smoothing()
-		var y := 410.0 if kind == "clock" else (330.0 if kind == "dropper" else 610.0)
+		var y := 410.0 if kind == "clock" else (330.0 if kind in ["stamp", "monitor"] else 610.0)
 		var e = w.spawn_enemy(kind, Vector2(1520, y))
 		await ticks(3)
 		e.set_physics_process(false)
 		e.direction = 1
 		e.queue_redraw()
 		await ticks(2)
-		sheet.blit_rect(await crop(e, kind == "dropper"), Rect2i(0, 0, 260, 170), Vector2i(5, row * 180 + 5))
+		sheet.blit_rect(await crop(e, kind in ["stamp", "monitor"]), Rect2i(0, 0, 260, 170), Vector2i(5, row * 180 + 5))
 		# Force the warning pose so every telegraph is visible in the same frame.
 		e.direction = 1
-		if kind == "dropper": e.drop_state = "warn"; e.drop_floor_y = 610.0
-		if kind in ["hopper", "dropper"]: e.change_state(e.State.ATTACK)
+		if kind in ["stamp", "monitor"]: e.drop_state = "warn"; e.drop_floor_y = 610.0
+		if kind in ["hopper", "stamp", "monitor"]: e.change_state(e.State.ATTACK)
 		else: e.start_attack()
 		e.windup = float(e.spec.windup) * 0.6
 		e.queue_redraw()
 		await ticks(1)
-		sheet.blit_rect(await crop(e, kind == "dropper"), Rect2i(0, 0, 260, 170), Vector2i(275, row * 180 + 5))
+		sheet.blit_rect(await crop(e, kind in ["stamp", "monitor"]), Rect2i(0, 0, 260, 170), Vector2i(275, row * 180 + 5))
 		e.queue_free()
 		await ticks(2)
 	sheet.save_png("res://docs/enemigos-05.png")

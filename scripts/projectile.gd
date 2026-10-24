@@ -9,11 +9,14 @@ var fall_gravity := 0.0
 var crawl := false
 var glyph := ""
 var destructible := false
+## "low" shots must be jumped, "high" shots slid or crouched under; route bots read these groups.
+var lane := ""
 
 func _ready() -> void:
 	collision_layer = 0
 	# Crawlers walk on the floor, so they only react to the student; walls are checked by ray.
 	collision_mask = 2 if crawl else 3
+	if lane != "": add_to_group("lane_" + lane)
 	var col := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
 	circle.radius = 9
@@ -51,6 +54,18 @@ func _draw() -> void:
 			draw_set_transform(Vector2.ZERO, age * 5)
 			draw_string(ThemeDB.fallback_font, Vector2(-7, 10), "∫", HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color("203049"))
 			draw_string(ThemeDB.fallback_font, Vector2(-8, 9), "∫", HORIZONTAL_ALIGNMENT_LEFT, -1, 30, tint)
+		"paper":
+			for i in 3:
+				var flutter := sin(age * 20 + i) * 2
+				draw_rect(Rect2(-14 + i * 6, -12 + i * 2 + flutter, 16, 12), Color("203049"))
+				draw_rect(Rect2(-13 + i * 6, -11 + i * 2 + flutter, 14, 10), tint)
+				draw_line(Vector2(-10 + i * 6, -6 + i * 2 + flutter), Vector2(-2 + i * 6, -6 + i * 2 + flutter), Color("e2475b"), 1.5)
+		"error":
+			draw_rect(Rect2(-16, -11, 32, 22), Color("203049"))
+			draw_rect(Rect2(-15, -10, 30, 20), Color("eef5ff"))
+			draw_rect(Rect2(-15, -10, 30, 6), tint)
+			draw_line(Vector2(-5, -1), Vector2(5, 8), Color("e2475b"), 2.5)
+			draw_line(Vector2(5, -1), Vector2(-5, 8), Color("e2475b"), 2.5)
 		"bug":
 			var step := sin(age * 30) * 2
 			for i in 3:

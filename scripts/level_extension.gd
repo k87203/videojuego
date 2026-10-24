@@ -13,6 +13,13 @@ var trial_active := false
 var trial_remaining := 0.0
 var trial_index := -1
 var pulse := 0.0
+var prefect_done: Dictionary = {}
+const ENCOUNTER_TITLES := {"clase": "CLASE DE CÁLCULO", "ventanilla": "VENTANILLA DE SERVICIOS ESCOLARES", "laboratorio": "LABORATORIO DE CÓMPUTO"}
+const ENCOUNTER_TIPS := {
+	"clase": "¡Clase de Cálculo! Salta las integrales bajas, agáchate con las altas y usa los pupitres.",
+	"ventanilla": "La fila de Servicios Escolares: no te quedes bajo los sellos y a la Carpeta Blindada písala.",
+	"laboratorio": "Laboratorio de cómputo: salta los bugs, agáchate con las ventanas de error y ojo con los monitores.",
+}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -52,6 +59,17 @@ func _process(delta: float) -> void:
 		world.say("AZTLI", "%s. %s" % [current_name, hint(current_kind)], 5)
 	var begin := float(Data.START + district * Data.DISTRICT)
 	chase_active = current_kind == "pursuit" and p.position.x > begin + 300 and p.position.x < begin + Data.DISTRICT - 250
+	if chase_active and not prefect_done.has(district) and not is_instance_valid(world.prefect):
+		world.start_prefect(begin + Data.DISTRICT - 260, district)
+		world.banner("¡EL PREFECTO TE PERSIGUE!", Color("ff9f3d"))
+	elif is_instance_valid(world.prefect) and world.prefect.state == "run" and p.position.x < world.prefect.slip_x - Data.DISTRICT + 560:
+		world.stop_prefect()
+	var chunk_index := int(floor((p.position.x - Data.START) / Data.CHUNK))
+	var encounter := Data.encounter_at(world.level_id, chunk_index / Data.CHUNKS_PER_DISTRICT, chunk_index % Data.CHUNKS_PER_DISTRICT)
+	if encounter != "" and not world.introduced.has("enc_%d" % chunk_index) and fposmod(p.position.x - Data.START, Data.CHUNK) > 60:
+		world.introduced["enc_%d" % chunk_index] = true
+		world.banner(ENCOUNTER_TITLES[encounter])
+		world.say("AZTLI", ENCOUNTER_TIPS[encounter], 6)
 	var trial_id := "trial_%d" % district
 	if current_kind == "sprint" and not world.trials_completed.has(trial_id):
 		if not trial_active and p.position.x >= begin + 280 and p.position.x < begin + 3400:
@@ -82,7 +100,7 @@ func _process(delta: float) -> void:
 func hint(kind: String) -> String:
 	match kind:
 		"collapse": return "Las plataformas naranjas ceden al pisarlas: mantente en movimiento."
-		"pursuit": return "¡Nos persiguen! Corre y utiliza las plataformas para ganar distancia."
+		"pursuit": return "¡El Prefecto patrulla este pasillo! Corre, salta las cubetas y deslízate bajo los reportes."
 		"sprint": return "Una entrega contrarreloj te espera al pasar el faro."
 		"moving": return "Observa el ritmo de las plataformas; hay una ruta baja de recuperación."
 		"garden": return "Respira y explora. Hay un escondite en la ruta alta."
@@ -106,8 +124,9 @@ func build_chunk(index: int) -> void:
 		kind = "workshop" if world.level_id >= 3 else "bridges"
 	elif part == 3 and kind not in ["sprint", "pursuit"]:
 		kind = ["moving", "collapse", "mixed"][(section + world.level_id) % 3]
+	var encounter := Data.encounter_at(world.level_id, section, part)
 	var floors: Array = [[0, 1200]]
-	if not rest:
+	if not rest and encounter == "":
 		if kind in ["bridges", "mixed"]: floors = [[0, 330], [480, 310], [940, 260]]
 		elif kind == "moving": floors = [[0, 280], [920, 280]]
 		elif kind == "collapse" and section > 7: floors = [[0, 260], [960, 240]]
@@ -122,6 +141,11 @@ func build_chunk(index: int) -> void:
 		# Slot is the local x offset: level, chunk and position identify each consumable.
 		world.pickup("heart", Vector2(x + 650, 565), stable(index, "heart", 650))
 		world.pickup("coffee" if section % 2 else "shield", Vector2(x + 850, 560), stable(index, "power", 850))
+	elif encounter != "":
+		build_encounter(encounter, x, index, section, part, kind)
+	elif kind == "pursuit":
+		for obstacle in Data.PURSUIT_COURSE[part]: spawn_obstacle(x + obstacle[0], obstacle[1])
+		for j in 3: world.pickup("credit", Vector2(x + 370 + j * 340, 470), stable(index, "credit", j))
 	else:
 		match kind:
 			"moving":
@@ -192,6 +216,50 @@ func build_chunk(index: int) -> void:
 	scenery.z_index = -1
 	chunk.add_child(scenery)
 	if "--profile-streaming" in OS.get_cmdline_user_args(): print("CHUNK BUILD index=%d elapsed=%.2fms" % [index, (Time.get_ticks_usec() - build_started) / 1000.0])
+
+func build_encounter(encounter: String, x: float, index: int, section: int, part: int, kind: String) -> void:
+	var tier := 1 + int(section >= 6) + int(section >= 12 and world.level_id >= 3)
+	var decor := Node2D.new()
+	decor.set_script(preload("res://scripts/encounter_decor.gd"))
+	decor.encounter = encounter
+	decor.position = Vector2(x, 610)
+	decor.z_index = -1
+	match encounter:
+		"clase":
+			var desks := [[220.0, 530.0, 110.0], [450.0, 470.0, 110.0], [680.0, 530.0, 110.0]]
+			for desk in desks:
+				world.platform(Vector2(x + desk[0], desk[1]), Vector2(desk[2], 22))
+				decor.desks.append([desk[0], desk[1] - 610.0, desk[2]])
+			guard("calc", Vector2(x + 980, 610), index, 0, tier)
+			guard("hopper", Vector2(x + 580, 610), index, 1, tier)
+		"ventanilla":
+			guard("stamp", Vector2(x + 360, 250), index, 0, tier)
+			guard("stamp", Vector2(x + 620, 250), index, 1, tier)
+			guard("shield" if world.level_id >= 3 else "task", Vector2(x + 900, 610), index, 2, tier)
+		"laboratorio":
+			guard("monitor", Vector2(x + 380, 260), index, 0, tier)
+			guard("monitor", Vector2(x + 660, 260), index, 1, tier)
+			guard("coder", Vector2(x + 1000, 610), index, 2, tier)
+	world.attach_spawn(decor)
+	for j in 3: world.pickup("credit", Vector2(x + 280 + j * 300, 555), stable(index, "credit", j))
+	if part == 1 and kind in ["terraces", "library", "garden"]:
+		var cache = world.pickup("cache", Vector2(x + 505, 330), stable(index, "cache", 0))
+		cache.hidden_reward = true
+
+func guard(enemy_kind: String, pos: Vector2, index: int, slot: int, tier: int) -> void:
+	var uid := stable(index, "enemy", slot)
+	if world.defeated_ids.has(uid): return
+	var enemy = world.spawn_enemy(enemy_kind, pos)
+	enemy.uid = uid
+	enemy.tier = tier
+
+func spawn_obstacle(x: float, lane: String) -> void:
+	var node := Area2D.new()
+	node.set_script(preload("res://scripts/lane_obstacle.gd"))
+	node.world = world
+	node.lane = lane
+	node.position = Vector2(x, 610)
+	world.attach_spawn(node)
 
 func stable(index: int, kind: String, slot: int) -> String:
 	return "ex_%d_%d_%s_%d" % [world.level_id, index, kind, slot]

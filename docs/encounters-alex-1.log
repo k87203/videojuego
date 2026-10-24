@@ -1,3 +1,3 @@
 Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
 
-Level 1 (alex): PASS; x=95732.8; previous=(95726.82, 609.9338); lives_lost=0; key=false; switch=false; duration=258.5s; trials=3; streamed=0; vulnerable; damage=5; worst_chunk=1 (index 26)
+Level 1 (alex): PASS; x=95732.8; previous=(95726.82, 609.9338); lives_lost=0; key=false; switch=false; duration=257.0s; trials=3; streamed=0; vulnerable; damage=5; worst_chunk=1 (index 30)

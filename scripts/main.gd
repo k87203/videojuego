@@ -15,9 +15,6 @@ var background: CanvasLayer
 var menu_art: Node2D
 var font: Font
 var screen := "menu"
-var dialogue_who := ""
-var dialogue_text := ""
-var dialogue_timer := 0.0
 var hud: Dictionary = {}
 var elapsed := 0.0
 var capture_path := ""
@@ -237,10 +234,6 @@ func build_hud() -> void:
 	var skill_panel := panel(ui, Rect2(24, 594, 236, 76), Color(0.04, 0.1, 0.18, 0.92), 12)
 	hud.character = label(skill_panel, "", Rect2(14, 9, 210, 25), 18, TEAL)
 	hud.skill = label(skill_panel, "", Rect2(14, 41, 210, 23), 14, GOLD)
-	hud.dialogue = panel(ui, Rect2(282, 574, 716, 110), Color(0.055, 0.13, 0.21, 0.96), 16)
-	hud.speaker = label(hud.dialogue, "AZTLI", Rect2(24, 12, 668, 27), 17, TEAL)
-	hud.message = label(hud.dialogue, "", Rect2(24, 43, 668, 61), 18)
-	hud.message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hud.boss_panel = panel(ui, Rect2(421, 111, 438, 63), Color(0.05, 0.1, 0.18, 0.92), 12)
 	hud.boss_label = label(hud.boss_panel, "", Rect2(15, 6, 410, 25), 16, GOLD)
 	hud.boss_bar = ProgressBar.new()
@@ -249,6 +242,23 @@ func build_hud() -> void:
 	hud.boss_bar.show_percentage = false
 	hud.boss_panel.add_child(hud.boss_bar)
 	label(ui, "A/D Mover   Espacio Salto   Shift Correr   S Deslizar   J Atacar   Q Habilidad   E Interactuar   Esc Pausa", Rect2(28, 692, 1220, 20), 12, Color("d5e3dd"))
+
+func banner(text: String, color: Color = GOLD) -> void:
+	# Big centered call-out for encounters and chases; it pops in, holds, then fades.
+	if screen != "playing": return
+	if is_instance_valid(hud.get("banner")): hud.banner.queue_free()
+	var l := label(ui, text, Rect2(90, 200, 1100, 70), 40, color)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_constant_override("outline_size", 10)
+	l.pivot_offset = l.size * 0.5
+	l.scale = Vector2(0.6, 0.6)
+	hud.banner = l
+	var tween := l.create_tween()
+	tween.tween_property(l, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_interval(1.6)
+	tween.tween_property(l, "modulate:a", 0.0, 0.4)
+	tween.tween_callback(l.queue_free)
+	Sound.sfx("trial", 1.2)
 
 func icon(parent: Node, kind: String, rect: Rect2) -> Control:
 	var node := Control.new()
@@ -259,10 +269,9 @@ func icon(parent: Node, kind: String, rect: Rect2) -> Control:
 	parent.add_child(node)
 	return node
 
-func say(who: String, message: String, duration: float = 5.0) -> void:
-	dialogue_who = who
-	dialogue_text = message
-	dialogue_timer = duration
+func say(_who: String, _message: String, _duration: float = 5.0) -> void:
+	# Gameplay notifications no longer cover the lower part of the scene.
+	pass
 
 func _process(delta: float) -> void:
 	elapsed += delta
@@ -278,7 +287,6 @@ func _process(delta: float) -> void:
 	ui.scale = Vector2.ONE * scale_factor
 	ui.position = (dimensions - Vector2(1280, 720) * scale_factor) * 0.5
 	if screen == "playing" and is_instance_valid(world):
-		dialogue_timer = maxf(0, dialogue_timer - delta)
 		if not hud.is_empty():
 			hud.hearts.set_counts(maxi(0, world.player.health), world.player.max_health)
 			hud.lives.text = "%d VIDAS" % int(Progress.data.lives)
@@ -302,9 +310,6 @@ func _process(delta: float) -> void:
 			hud.section.text = world.extension.current_name + "   ·   %d%%" % int(clampf(world.player.position.x / world.level_length, 0, 1) * 100)
 			hud.timer.text = "ENTREGA  %.1f s" % world.extension.trial_remaining if world.extension.trial_active else ""
 			hud.timer_icon.visible = world.extension.trial_active
-			hud.dialogue.visible = dialogue_timer > 0
-			hud.speaker.text = dialogue_who
-			hud.message.text = dialogue_text
 			hud.boss_panel.visible = is_instance_valid(world.boss) and world.boss.active
 			if hud.boss_panel.visible:
 				hud.boss_label.text = ("BUG 404" if world.boss.miniboss else "DOCTOR REPROBACIÓN") + "  ·  FASE %d" % world.boss.phase

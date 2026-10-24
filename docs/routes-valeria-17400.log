@@ -2,5 +2,5 @@ Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
 
 Level 1 (valeria): PASS; x=22204.0; previous=(22197.38, 609.9338); lives_lost=0; key=false; switch=false; duration=12.1s; trials=0; streamed=6
 Level 2 (valeria): PASS; x=22204.0; previous=(22197.36, 609.9338); lives_lost=0; key=false; switch=false; duration=12.1s; trials=0; streamed=6
-Level 3 (valeria): PASS; x=22203.4; previous=(22196.71, 609.9338); lives_lost=0; key=false; switch=false; duration=12.1s; trials=0; streamed=6
+Level 3 (valeria): PASS; x=22203.4; previous=(22196.7, 609.933); lives_lost=0; key=false; switch=false; duration=12.1s; trials=0; streamed=6
 Level 4 (valeria): PASS; x=22204.0; previous=(22197.38, 609.9338); lives_lost=0; key=false; switch=false; duration=12.1s; trials=0; streamed=6
