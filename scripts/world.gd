@@ -206,7 +206,12 @@ func pickup(kind: String, pos: Vector2, stable_id: String = ""):
 	node.set_script(Prop)
 	node.kind = kind
 	node.position = pos
-	node.uid = stable_id if stable_id != "" else "%d_%s_%d" % [level_id, kind, pickup_count]
+	node.uid = stable_id if stable_id != "" else Progress.reward_id(level_id, pos.x, "%s_y%d" % [kind, roundi(pos.y)])
+	# Recognize legacy indexed intro pickups without changing their old save entries.
+	var legacy := "%d_%s_%d" % [level_id, kind, pickup_count]
+	if stable_id == "" and legacy in Progress.data.collected:
+		if not node.uid in Progress.data.collected: Progress.data.collected.append(node.uid)
+		if kind in ["credit", "cache"] and not node.uid in Progress.data.coin_claims: Progress.data.coin_claims.append(node.uid)
 	node.world = self
 	node.z_index = 2
 	pickup_count += 1
@@ -223,6 +228,7 @@ func spawn_enemy(kind: String, pos: Vector2):
 	node.kind = kind
 	node.world = self
 	node.position = pos
+	node.uid = Progress.reward_id(level_id, pos.x, "enemy")
 	node.z_index = 3
 	attach_spawn(node)
 	return node
@@ -318,11 +324,12 @@ func stop_prefect() -> void:
 	prefect = null
 
 func prefect_defeated() -> void:
-	Progress.data.score += 500
+	if is_instance_valid(prefect): Progress.award_score(Progress.reward_id(level_id, prefect.slip_x, "prefect"), 500)
 	banner("¡PREFECTO FUERA DE COMBATE!", Color("9affdf"))
 	say("AZTLI", "¡Resbaló con su propio letrero de piso mojado! Sigamos, que aún hay entregas.", 4)
 	# Recorded by the Prefecto's own district: the student may already be in the next one.
 	if is_instance_valid(extension) and is_instance_valid(prefect): extension.prefect_done[prefect.district] = true
+	Progress.save_game()
 
 func save_snapshot() -> void:
 	if completed: return
@@ -384,6 +391,7 @@ func lose_life() -> void:
 func respawn() -> void:
 	player.position = checkpoint
 	player.velocity = Vector2.ZERO
+	player.refresh_health_limit(false)
 	player.health = player.max_health
 	player.invulnerable = 2
 	player.camera.reset_smoothing()
@@ -409,9 +417,11 @@ func respawn() -> void:
 
 func activate_arena() -> void:
 	arena_closed = true
+	player.refresh_health_limit(true)
 
 func boss_defeated() -> void:
 	arena_closed = false
+	player.refresh_health_limit(false)
 	checkpoint = Vector2(boss.home.x - 380, 610)
 	for shot in get_tree().get_nodes_in_group("projectiles"): shot.queue_free()
 	for enemy in get_tree().get_nodes_in_group("enemies"):
@@ -447,8 +457,8 @@ func try_complete() -> void:
 	player.celebrating = true
 	player.locked = true
 	var grade := "S" if secrets >= 2 and damage_taken <= 2 else ("A" if damage_taken <= 4 else ("B" if damage_taken <= 8 else "C"))
-	Progress.data.score += 1000 + level_credits * 10
-	Progress.complete(level_id, grade)
+	Progress.award_score(Progress.reward_id(level_id, Data.layout(level_id).exit, "completion"), 1000 + level_credits * 10)
+	Progress.complete(level_id, grade, level_time, damage_taken)
 	Sound.sfx("victory")
 	app.results(grade)
 

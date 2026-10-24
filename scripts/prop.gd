@@ -29,6 +29,10 @@ func _ready() -> void:
 		collected = true
 		visible = false
 		set_deferred("monitoring", false)
+	elif (kind in ["credit", "cache"] and uid in Progress.data.coin_claims) or (kind == "relic" and uid in Progress.data.relics):
+		collected = true
+		visible = false
+		set_deferred("monitoring", false)
 	elif kind in RUN_REWARDS and world.consumed_ids.has(uid):
 		collected = true
 		visible = false
@@ -57,8 +61,7 @@ func collect() -> void:
 	var message := ""
 	match kind:
 		"credit":
-			Progress.credit()
-			world.level_credits += 1
+			if Progress.credit(1, uid): world.level_credits += 1
 			Sound.sfx("coin", randf_range(0.95, 1.2))
 		"coffee":
 			world.player.coffee = 12
@@ -72,8 +75,8 @@ func collect() -> void:
 			message = "+ SALUD"
 			color = Color("ff90a1")
 		"usb":
-			Progress.data.usb.append(uid)
-			Progress.data.score += 500
+			if not uid in Progress.data.usb: Progress.data.usb.append(uid)
+			Progress.award_score(uid, 500)
 			world.secrets += 1
 			message = "USB DORADA +500"
 			world.say("AZTLI", "¡Un secreto recuperado! Reúne las 8 USB para la mención honorífica.", 4)
@@ -85,14 +88,18 @@ func collect() -> void:
 		"fragment":
 			if not world.level_id in Progress.data.fragments: Progress.data.fragments.append(world.level_id)
 			message = "FRAGMENTO DEL TÍTULO"
-			Progress.data.score += 1000
+			Progress.award_score(uid, 1000)
 		"credential":
 			world.has_credential = true
 			message = "CREDENCIAL RECUPERADA"
 		"cache":
-			Progress.credit(15)
-			Progress.data.score += 300
-			message = "ESCONDITE +300"
+			Progress.credit(15, uid)
+			Progress.award_score(Progress.reward_id(world.level_id, position.x, "cache_bonus"), 300)
+			message = "ESCONDITE"
+		"relic":
+			Progress.collect_relic(uid)
+			message = "RELIQUIA %d/3" % Progress.relic_count(world.level_id)
+			color = Color("a69dff")
 	if kind != "credit": Sound.sfx("power")
 	if kind in ["credit", "usb", "feather", "fragment", "credential", "cache"]:
 		Progress.data.collected.append(uid)
@@ -140,6 +147,11 @@ func _draw() -> void:
 		draw_set_transform(Vector2(0, sin(t * 3 + position.x) * 5))
 		draw_circle(Vector2.ZERO, 25, Color(1, 0.8, 0.4, 0.08))
 	match kind:
+		"relic":
+			draw_arc(Vector2.ZERO, 23, t, t + TAU * 0.8, 32, Color("a69dff"), 2.5, true)
+			draw_colored_polygon(PackedVector2Array([Vector2(0, -18), Vector2(14, 0), Vector2(0, 18), Vector2(-14, 0)]), gold)
+			draw_line(Vector2(-7, 0), Vector2(7, 0), ink, 3)
+			draw_line(Vector2(0, -9), Vector2(0, 9), ink, 3)
 		"trial_arch":
 			for side in [-1, 1]: draw_line(Vector2(side * 52, 0), Vector2(side * 52, -135), teal, 7, true)
 			draw_arc(Vector2(0, -135), 52, PI, TAU, 24, teal, 7, true)

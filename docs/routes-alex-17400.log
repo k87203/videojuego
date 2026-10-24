@@ -1,6 +1,0 @@
-Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
-
-Level 1 (alex): PASS; x=22201.8; previous=(22195.85, 609.9338); lives_lost=0; key=false; switch=false; duration=13.4s; trials=0; streamed=6
-Level 2 (alex): PASS; x=22201.9; previous=(22195.93, 609.9338); lives_lost=0; key=false; switch=false; duration=13.4s; trials=0; streamed=6
-Level 3 (alex): PASS; x=22201.8; previous=(22195.8, 609.9338); lives_lost=0; key=false; switch=false; duration=13.6s; trials=0; streamed=6
-Level 4 (alex): PASS; x=22201.8; previous=(22195.85, 609.9338); lives_lost=0; key=false; switch=false; duration=13.4s; trials=0; streamed=6

@@ -8,6 +8,8 @@ var coffee := 0.0
 var attack_time := 0.0
 var celebrating := true
 var character_id := ""
+## Shop-only appearance override; never changes owned items or the equipped outfit.
+var preview_outfit: Dictionary = {}
 
 func _ready() -> void:
 	if character_id == "": character_id = str(Progress.data.character)

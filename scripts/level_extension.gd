@@ -84,8 +84,8 @@ func _process(delta: float) -> void:
 		if p.position.x >= target:
 			world.trials_completed["trial_%d" % trial_index] = true
 			trial_active = false
-			Progress.credit(10)
-			Progress.data.score += 500
+			Progress.credit(10, Progress.reward_id(world.level_id, target, "trial"))
+			Progress.award_score(Progress.reward_id(world.level_id, target, "trial_bonus"), 500)
 			world.fx.floating(p.position + Vector2(-60, -90), "ENTREGA +500")
 			world.say("AZTLI", "¡Entrega completada! Otro sello para tu expediente.", 4)
 			world.save_snapshot()
@@ -204,6 +204,12 @@ func build_chunk(index: int) -> void:
 			for j in 3: world.pickup("credit", Vector2(x + 390 + j * 180, 470 - j * 85), stable(index, "high_credit", j))
 	if kind == "sprint" and part == 2:
 		world.pickup("trial_arch", Vector2(x + 1000, 610), stable(index, "arch", 0))
+	# Three authored side routes, each with a reachable staircase for every student.
+	if index in [1, 21, 65]:
+		world.platform(Vector2(x + 820, 420), Vector2(120, 22))
+		world.platform(Vector2(x + 980, 340), Vector2(150, 22))
+		var relic = world.pickup("relic", Vector2(x + 1050, 300), stable(index, "relic", 1050))
+		relic.hidden_reward = true
 	world.spawn_parent = null
 	# Local furniture silhouettes, cached in the chunk's display list.
 	var scenery := Node2D.new()

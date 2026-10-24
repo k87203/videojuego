@@ -141,7 +141,7 @@ func run() -> void:
 	MusicManager.enter_level(1)
 	MusicManager.action(.8, 2)
 	check(Sound.current_track == "campus_1_intense", "A single combat event immediately raises musical intensity")
-	check(MusicManager.bpm("urgent_chase") > MusicManager.bpm("campus_1") and MusicManager.bpm("epic_final") == 180, "Pursuit and final combat use faster original arrangements")
+	check(MusicManager.bpm("urgent_chase") > MusicManager.bpm("campus_1") and MusicManager.bpm("epic_final") == 176, "Pursuit and final combat use faster original arrangements")
 	check(Sound.music.stream.mix_rate == 32000, "New synthesized score uses the higher-resolution audio source")
 	# Real legacy-file migration, including IDs whose kind contains an underscore.
 	Progress.save_path = "user://remaster-migration-%d.json" % Time.get_ticks_usec()

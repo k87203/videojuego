@@ -1,0 +1,146 @@
+{
+  "method": "Original arcade-electro synthesis, authored motifs, Reese/sub bass, supersaws, drops and arpeggios. Teacher suspense: heartbeat percussion, dissonant strings and ostinati. No third-party recordings or song inputs.",
+  "sample_rate": 32000,
+  "tracks": [
+    {
+      "name": "campus_1",
+      "bpm": 160,
+      "seconds": 72.0,
+      "bars": 48,
+      "style": "arcade-electro",
+      "rms": 0.14,
+      "peak": 0.5274376561216632,
+      "seam_step": 0.0
+    },
+    {
+      "name": "campus_1_intense",
+      "bpm": 160,
+      "seconds": 72.0,
+      "bars": 48,
+      "style": "arcade-electro",
+      "rms": 0.14,
+      "peak": 0.4909246580589109,
+      "seam_step": 0.0
+    },
+    {
+      "name": "campus_2",
+      "bpm": 164,
+      "seconds": 70.24390625,
+      "bars": 48,
+      "style": "arcade-electro",
+      "rms": 0.14,
+      "peak": 0.5291693564994351,
+      "seam_step": 0.0
+    },
+    {
+      "name": "campus_2_intense",
+      "bpm": 164,
+      "seconds": 70.24390625,
+      "bars": 48,
+      "style": "arcade-electro",
+      "rms": 0.14,
+      "peak": 0.5012067888202482,
+      "seam_step": 0.0
+    },
+    {
+      "name": "campus_3",
+      "bpm": 172,
+      "seconds": 66.97675,
+      "bars": 48,
+      "style": "arcade-electro",
+      "rms": 0.13999999999999999,
+      "peak": 0.5764358336203529,
+      "seam_step": 0.0
+    },
+    {
+      "name": "campus_3_intense",
+      "bpm": 172,
+      "seconds": 66.97675,
+      "bars": 48,
+      "style": "arcade-electro",
+      "rms": 0.13999999999999999,
+      "peak": 0.5519973026104419,
+      "seam_step": 0.0
+    },
+    {
+      "name": "campus_4",
+      "bpm": 168,
+      "seconds": 68.5714375,
+      "bars": 48,
+      "style": "arcade-electro",
+      "rms": 0.14,
+      "peak": 0.5320549343462008,
+      "seam_step": 0.0
+    },
+    {
+      "name": "campus_4_intense",
+      "bpm": 168,
+      "seconds": 68.5714375,
+      "bars": 48,
+      "style": "arcade-electro",
+      "rms": 0.14,
+      "peak": 0.4988211395155433,
+      "seam_step": 0.0
+    },
+    {
+      "name": "modern_menu",
+      "bpm": 156,
+      "seconds": 73.84615625,
+      "bars": 48,
+      "style": "arcade-electro",
+      "rms": 0.13999999999999999,
+      "peak": 0.49543868622398957,
+      "seam_step": 0.0
+    },
+    {
+      "name": "urgent_chase",
+      "bpm": 180,
+      "seconds": 64.0,
+      "bars": 48,
+      "style": "arcade-electro",
+      "rms": 0.14,
+      "peak": 0.5370607074222865,
+      "seam_step": 0.0
+    },
+    {
+      "name": "epic_boss",
+      "bpm": 174,
+      "seconds": 66.20690625,
+      "bars": 48,
+      "style": "arcade-electro",
+      "rms": 0.14000000000000004,
+      "peak": 0.5191490388000389,
+      "seam_step": 0.0
+    },
+    {
+      "name": "ceremony",
+      "bpm": 152,
+      "seconds": 75.78946875,
+      "bars": 48,
+      "style": "arcade-electro",
+      "rms": 0.14,
+      "peak": 0.48410575672896006,
+      "seam_step": 0.0
+    },
+    {
+      "name": "teacher_suspense",
+      "bpm": 160,
+      "seconds": 72.0,
+      "bars": 48,
+      "style": "suspense",
+      "rms": 0.12000000000000001,
+      "peak": 0.5997362970714486,
+      "seam_step": 0.0
+    },
+    {
+      "name": "epic_final",
+      "bpm": 176,
+      "seconds": 65.45453125,
+      "bars": 48,
+      "style": "suspense",
+      "rms": 0.12000000000000002,
+      "peak": 0.5845825771016159,
+      "seam_step": 0.0
+    }
+  ]
+}

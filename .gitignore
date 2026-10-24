@@ -3,3 +3,16 @@ build/
 backups/
 __pycache__/
 *.tmp
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Generated validation reports and screenshots.
+docs/*.png
+docs/*.png.import
+docs/*-results.txt
+docs/test-results.txt
+docs/enemy-duels.txt
+docs/windows-build.json
+docs/render-profile.json

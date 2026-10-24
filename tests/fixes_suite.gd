@@ -201,7 +201,7 @@ func shield_between_students() -> void:
 	await ticks(2)
 	Progress.data.shield = true
 	for child in app.ui.get_children():
-		if child is Button and child.text == "Elegir Sofía": child.pressed.emit(); break
+		if child is Button and child.get_meta("character_choice", "") == "sofia": child.pressed.emit(); break
 	await ticks(2)
 	check(Progress.data.character == "sofia" and not Progress.data.shield, "Changing student clears the shield")
 	Progress.save_path = "user://fixes-shield-%d.json" % Time.get_ticks_usec()

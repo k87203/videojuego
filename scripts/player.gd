@@ -42,8 +42,12 @@ var prev_velocity_x := 0.0
 
 func _ready() -> void:
 	character_id = str(Progress.data.character)
+	if not Progress.character_available(character_id):
+		character_id = "alex"
+		Progress.data.character = character_id
 	character = preload("res://scripts/characters.gd").spec(character_id)
 	max_health = int(character.health)
+	if "heart" in Progress.data.purchases: max_health += 1
 	health = max_health
 	# The scholarship shield is per-run state: every level starts from this student's default.
 	Progress.data.shield = character_id == "diego"
@@ -211,12 +215,13 @@ func can_double_jump() -> bool:
 
 func use_ability() -> void:
 	if ability_cooldown > 0 or locked: return
-	if character_id == "valeria" and (is_on_floor() or jumps >= 2): return
-	if character_id == "diego" and Progress.data.shield:
+	var ability := str(character.get("ability", character_id))
+	if ability == "valeria" and (is_on_floor() or jumps >= 2): return
+	if ability == "diego" and Progress.data.shield:
 		world.fx.floating(position + Vector2(-70, -95), "Ya tienes escudo", Color("78e8e0"))
 		return
 	ability_cooldown = float(character.cooldown)
-	match character_id:
+	match ability:
 		"alex":
 			dash_time = 0.18
 			# The dash slips through shots and strikes what it touches (shields still block it).
@@ -226,7 +231,7 @@ func use_ability() -> void:
 			Progress.data.shield = true
 			world.shockwave(position, 170)
 		"sofia": radar_time = 5
-	Sound.sfx("ability_" + character_id)
+	Sound.sfx("ability_" + ability)
 	world.fx.burst(position + Vector2(0, -30), Color(character.accent), 20)
 
 func hurt(from: Vector2) -> void:
@@ -248,3 +253,7 @@ func hurt(from: Vector2) -> void:
 	world.shake = 8
 	if health <= 0:
 		world.lose_life()
+
+func refresh_health_limit(in_boss_arena: bool) -> void:
+	max_health = int(character.health) + (1 if "heart" in Progress.data.purchases and not in_boss_arena else 0)
+	health = mini(health, max_health)

@@ -31,13 +31,16 @@ func run() -> void:
 	var portraits := 0
 	for child in app.ui.get_children():
 		if child.get_script() == preload("res://scripts/menu_actor.gd"): portraits += 1
-	check(app.screen == "characters" and portraits == 4, "Four animated character portraits")
+	check(app.screen == "characters" and portraits == Characters.IDS.size(), "All six animated character portraits")
 	for child in app.ui.get_children():
-		if child is Button and child.text == "Elegir Sofía":
+		if child is Button and child.get_meta("character_choice", "") == "sofia":
 			child.pressed.emit()
 			break
 	await ticks(2)
 	check(Progress.data.character == "sofia", "Character selection button updates profile")
+	# Premium profiles must be bought before the shared movement fixtures can select them.
+	Progress.credit(240, "1_test_profiles_x0")
+	check(Progress.buy("maestra_luz") and Progress.buy("profe_nico"), "Fixture unlocks both teacher profiles through purchases")
 	for id in Characters.IDS:
 		release()
 		Progress.data.character = id
@@ -161,7 +164,7 @@ func run() -> void:
 	w.set_process(false)
 	MusicManager.enter_level(2)
 	check(Sound.current_track == "campus_2", "Exploration chooses level theme")
-	check(absf(float(Sound.music.stream.loop_end) / Sound.music.stream.mix_rate - 96.0) < 0.05, "Compressed music loops over its full arrangement")
+	check(absf(float(Sound.music.stream.loop_end) / Sound.music.stream.mix_rate - 192.0 * 60.0 / MusicManager.bpm("campus_2")) < 0.05, "Compressed music loops over its full 48-bar arrangement")
 	MusicManager.context(0.9, false, 0, false)
 	check(Sound.current_track == "campus_2_intense", "Difficulty selects synchronized intense arrangement")
 	MusicManager.context(0.9, true, 0, false)

@@ -1,4 +1,0 @@
-Level 1 (alex): PASS; x=95732.7; previous=(95726.73, 609.9338); lives_lost=0; key=false; switch=false; duration=256.6s; trials=3; streamed=0
-Level 2 (valeria): PASS; x=95733.6; previous=(95726.95, 609.9338); lives_lost=0; key=true; switch=false; duration=229.3s; trials=3; streamed=0
-Level 3 (diego): PASS; x=94603.0; previous=(94597.48, 609.9338); lives_lost=0; key=true; switch=true; duration=277.4s; trials=3; streamed=1
-Level 4 (sofia): PASS; x=94602.0; previous=(94595.8, 609.9338); lives_lost=0; key=true; switch=false; duration=245.2s; trials=3; streamed=1

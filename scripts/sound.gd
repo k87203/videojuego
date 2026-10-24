@@ -7,6 +7,11 @@ var cache: Dictionary = {}
 var shutting_down := false
 var music_players: Array[AudioStreamPlayer] = []
 var fade: Tween
+const MAX_VOICES := 6
+const MAX_SAME_EFFECT := 2
+const GROUP_LIMITS := {"movement": 2, "combat": 3, "danger": 2, "reward": 2, "ui": 1}
+const COOLDOWNS := {"step": 0.12, "land": 0.12, "jump": 0.12, "attack": 0.12, "hit": 0.10, "hurt": 0.30, "coin": 0.09, "alert": 0.65, "windup": 0.22, "enemy_attack": 0.18, "ui_hover": 0.10, "victory": 0.60, "crumble": 0.22, "trial": 0.50}
+var last_effect: Dictionary = {}
 const PREWARM := ["jump", "attack", "hit", "hurt", "coin", "power", "victory", "alert", "windup", "enemy_attack", "checkpoint", "ui_hover", "land", "step", "slide", "shield", "door", "eagle", "ability_alex", "ability_valeria", "ability_diego", "ability_sofia", "crumble", "trial", "urgent_chase", "epic_boss", "epic_final"]
 
 func _ready() -> void:
@@ -21,7 +26,7 @@ func _ready() -> void:
 		add_child(music_player)
 		music_players.append(music_player)
 	music = music_players[0]
-	for i in 12:
+	for i in MAX_VOICES:
 		var voice := AudioStreamPlayer.new()
 		voice.bus = "Effects"
 		add_child(voice)
@@ -38,12 +43,18 @@ func cache_resource(sound_name: String) -> void:
 func warm_level(id: int) -> void:
 	cache_resource("campus_%d" % id)
 	cache_resource("campus_%d_intense" % id)
+	if id == 4: cache_resource("teacher_suspense")
 
 func apply_volume() -> void:
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Music"), linear_to_db(maxf(Progress.music_volume, 0.0001)))
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Effects"), linear_to_db(maxf(Progress.effects_volume, 0.0001)))
-	AudioServer.set_bus_mute(AudioServer.get_bus_index("Music"), Progress.music_volume <= 0)
-	AudioServer.set_bus_mute(AudioServer.get_bus_index("Effects"), Progress.effects_volume <= 0)
+	AudioServer.set_bus_mute(AudioServer.get_bus_index("Music"), Progress.audio_muted or Progress.music_volume <= 0)
+	AudioServer.set_bus_mute(AudioServer.get_bus_index("Effects"), Progress.audio_muted or Progress.effects_volume <= 0)
+
+func toggle_mute() -> void:
+	Progress.audio_muted = not Progress.audio_muted
+	apply_volume()
+	Progress.save_game()
 
 func track(track_name: String, aligned: bool = false, fade_seconds: float = 0.65) -> void:
 	if shutting_down: return
@@ -88,17 +99,56 @@ func shutdown() -> void:
 		voice.stream = null
 	cache.clear()
 
-func sfx(effect: String, pitch: float = 1.0) -> void:
-	if shutting_down: return
-	var path := "res://assets/audio/" + effect + ".wav"
-	if not cache.has(effect):
-		if not ResourceLoader.exists(path):
-			return
-		cache[effect] = load(path)
+func effect_group(effect: String) -> String:
+	if effect == "ui_hover": return "ui"
+	if effect in ["step", "land", "jump", "slide"]: return "movement"
+	if effect in ["alert", "windup", "enemy_attack", "urgent_chase", "epic_boss", "epic_final", "crumble"]: return "danger"
+	if effect in ["coin", "power", "victory", "checkpoint", "eagle", "door", "trial"]: return "reward"
+	return "combat"
+
+func effect_priority(effect: String) -> int:
+	if effect in ["hurt", "shield"]: return 100
+	if effect in ["windup", "enemy_attack", "alert"]: return 85
+	if effect in ["checkpoint", "victory", "trial"]: return 75
+	if effect in ["hit", "power"] or effect.begins_with("ability_"): return 65
+	if effect in ["attack", "jump", "coin"]: return 45
+	return 20
+
+func sfx(effect: String, pitch: float = 1.0) -> bool:
+	if shutting_down or Progress.audio_muted or Progress.effects_volume <= 0: return false
+	var now := Time.get_ticks_usec() / 1000000.0
+	if now - float(last_effect.get(effect, -100.0)) < float(COOLDOWNS.get(effect, 0.16)): return false
+	var group := effect_group(effect)
+	var priority := effect_priority(effect)
+	var same := 0
+	var in_group := 0
+	var idle: AudioStreamPlayer
 	for voice in voices:
 		if not voice.playing:
-			voice.stream = cache[effect]
-			voice.pitch_scale = pitch
-			voice.volume_db = -13 if effect in ["step", "land"] else -7
-			voice.play()
-			return
+			if idle == null: idle = voice
+			continue
+		if voice.get_meta("effect", "") == effect: same += 1
+		if voice.get_meta("group", "") == group: in_group += 1
+	if same >= MAX_SAME_EFFECT: return false
+	var group_full: bool = in_group >= int(GROUP_LIMITS[group])
+	var selected: AudioStreamPlayer = null if group_full else idle
+	if selected == null:
+		# Important cues can replace a quieter effect, never another higher-priority cue.
+		for voice in voices:
+			if not voice.playing: continue
+			if group_full and voice.get_meta("group", "") != group: continue
+			if int(voice.get_meta("priority", 0)) >= priority: continue
+			if selected == null or int(voice.get_meta("priority", 0)) < int(selected.get_meta("priority", 0)): selected = voice
+	if selected == null: return false
+	cache_resource(effect)
+	if not cache.has(effect): return false
+	selected.stop()
+	selected.stream = cache[effect]
+	selected.pitch_scale = clampf(pitch, 0.7, 1.5)
+	selected.volume_db = -22 if effect in ["step", "land", "ui_hover"] else (-14 if priority >= 75 else -17)
+	selected.set_meta("effect", effect)
+	selected.set_meta("group", group)
+	selected.set_meta("priority", priority)
+	selected.play()
+	last_effect[effect] = now
+	return true

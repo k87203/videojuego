@@ -33,15 +33,18 @@ static func build(app) -> void:
 	cont.disabled = not FileAccess.file_exists(Progress.SAVE_PATH) and Progress.data.score == 0
 	decorate(cont)
 	for i in 3:
-		var captions := ["NIVELES", "ESTUDIANTES", "AUDIO / CONTROL"]
+		var captions := ["NIVELES", "PERSONAJES", "AUDIO / CONTROL"]
 		var callbacks: Array[Callable] = [app.level_select, func(): app.character_select(false), func(): app.settings("menu")]
 		var b = app.button(app.ui, captions[i], Rect2(58 + i * 206, 621, 196, 42), callbacks[i])
 		decorate(b)
 		b.add_theme_font_size_override("font_size", 13)
 	var exit_button = app.button(app.ui, "SALIR  ×", Rect2(1125, 667, 110, 32), app.quit_game)
+	var collection_button = app.button(app.ui, "TIENDA / GALERÍA / LOGROS", Rect2(715, 667, 390, 32), app.collection)
+	decorate(collection_button)
+	collection_button.add_theme_font_size_override("font_size", 12)
 	decorate(exit_button)
 	exit_button.add_theme_font_size_override("font_size", 12)
-	app.label(app.ui, "04 NIVELES     /     04 ESTUDIANTES     /     UN TÍTULO", Rect2(59, 683, 890, 22), 11, muted)
+	app.label(app.ui, "06 PERSONAJES  /  12 RELIQUIAS  /  %d MONEDAS" % int(Progress.data.wallet), Rect2(59, 683, 640, 22), 11, muted)
 	app.label(app.ui, "AZTLI", Rect2(1014, 163, 210, 35), 25, cyan)
 	app.label(app.ui, "TU ALIADO EN EL AIRE", Rect2(1014, 198, 220, 25), 10, muted)
 	var profile: Dictionary = preload("res://scripts/characters.gd").spec(str(Progress.data.character))

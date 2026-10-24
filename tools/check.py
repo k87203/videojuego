@@ -7,10 +7,14 @@ import shutil
 import subprocess
 import sys
 import wave
+import hashlib
+import array
+import math
+from godot_path import find_godot
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument('--godot', default=os.environ.get('GODOT', shutil.which('godot') or r'C:\Users\uriel\Downloads\Godot_v4.7.2-stable_win64_console.exe'))
+parser.add_argument('--godot')
 parser.add_argument('--routes', action='store_true')
 parser.add_argument('--combat', action='store_true')
 parser.add_argument('--expansion', action='store_true')
@@ -18,7 +22,10 @@ parser.add_argument('--matrix', action='store_true')
 parser.add_argument('--remaster', action='store_true')
 parser.add_argument('--fixes', action='store_true')
 parser.add_argument('--mejoras', action='store_true')
+parser.add_argument('--incentives', action='store_true')
+parser.add_argument('--music', action='store_true')
 args = parser.parse_args()
+args.godot = find_godot(args.godot)
 
 references = 0
 for folder in ['scripts', 'scenes', 'tests']:
@@ -46,10 +53,27 @@ for kind in specs:
 print(f'ENEMY AUDIT: {len(specs)} kinds defined, {len(roster)} placed in levels, all drawn and introduced', flush=True)
 print(f'ASSET AUDIT: {references} references and {len(list((ROOT/"assets"/"audio").glob("*.wav")))} WAV files OK', flush=True)
 
+if args.music:
+    names = ['modern_menu', 'urgent_chase', 'epic_boss', 'epic_final', 'teacher_suspense', 'ceremony']
+    names += [f'campus_{level}{suffix}' for level in range(1, 5) for suffix in ['', '_intense']]
+    fingerprints = set()
+    for name in names:
+        with wave.open(str(ROOT/'assets'/'audio'/(name+'.wav'))) as source:
+            duration = source.getnframes()/source.getframerate()
+            assert 60 <= duration <= 90 and source.getnchannels() == 2 and source.getframerate() == 32000, name
+            samples = array.array('h', source.readframes(source.getnframes()))
+        if sys.byteorder != 'little': samples.byteswap()
+        rms = math.sqrt(sum(value*value for value in samples[::32])/len(samples[::32]))/32767
+        assert 0.03 < rms <= 0.16 and max(abs(value) for value in samples) <= 27000, (name, 'mix level')
+        assert max(abs(samples[i]-samples[-2+i]) for i in [0, 1])/32767 < 0.04, (name, 'loop boundary')
+        fingerprints.add(hashlib.sha256(samples.tobytes()).hexdigest())
+    assert len(fingerprints) == len(names), 'Tracks must be distinct original arrangements'
+    print(f'MUSIC ASSET AUDIT: {len(names)} distinct loops, 60–90 seconds, moderate RMS, no clipping and smooth boundaries', flush=True)
+
 def run(arguments, log):
     result = subprocess.run([args.godot, '--headless', '--path', str(ROOT), *arguments], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=1200 if args.routes or args.matrix else 240)
     output = re.sub(r'\x1b\[[0-9;]*m', '', result.stdout + result.stderr)
-    (ROOT/'docs'/log).write_text(output, encoding='utf-8')
+    (ROOT/'docs'/log).write_text(output, encoding='utf-8', newline='\n')
     for line in output.splitlines():
         if any(term in line for term in ['PASS:', 'FAIL', 'RESULT:', 'COMBAT', 'Level ', 'ERROR:', 'WARNING:', 'Leaked', 'still in use']):
             print(line, flush=True)
@@ -59,7 +83,11 @@ def run(arguments, log):
 
 run(['--editor', '--import', '--quit'], 'import.log')
 print('GODOT IMPORT: OK', flush=True)
-if args.mejoras:
+if args.music:
+    run(['--fixed-fps', '60', 'res://tests/music_suite.tscn', '--', '--test'], 'music.log')
+elif args.incentives:
+    run(['--fixed-fps', '60', 'res://tests/incentives_suite.tscn', '--', '--test'], 'incentives.log')
+elif args.mejoras:
     run(['--fixed-fps', '60', 'res://tests/mejoras_suite.tscn', '--', '--test'], 'mejoras.log')
 elif args.fixes:
     run(['--fixed-fps', '60', 'res://tests/fixes_suite.tscn', '--', '--test'], 'fixes.log')

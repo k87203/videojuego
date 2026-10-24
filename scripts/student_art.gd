@@ -16,6 +16,14 @@ func _draw() -> void:
 	var primary := Color(profile.primary)
 	var dark := Color(profile.dark)
 	var accent := Color(profile.accent)
+	var outfit: Dictionary = Progress.outfit(actor.character_id)
+	var previewing: bool = "preview_outfit" in actor and not actor.preview_outfit.is_empty()
+	if previewing: outfit = actor.preview_outfit
+	var costume := str(outfit.get("skin", ""))
+	if (costume in Progress.data.purchases or previewing) and Progress.SHOP.has(costume) and Progress.SHOP[costume].slot == "skin":
+		primary = Color(Progress.SHOP[costume].color)
+		dark = primary.darkened(0.4)
+		accent = primary.lightened(0.35)
 	var hair := Color(profile.hair)
 	var skin := Color(profile.skin)
 	var moving: bool = absf(actor.velocity.x) > 20 and actor.is_on_floor()
@@ -77,6 +85,18 @@ func _draw() -> void:
 	draw_line(Vector2(3, -43 + bend), Vector2(4, -35 + bend), Color("f8ecd0"), 1.4, true)
 	draw_line(Vector2(-7, -45 + bend), Vector2(-7, -23 + bend * 0.6), Color("f3cd7a"), 3, true)
 	draw_circle(Vector2(7, -35 + bend), 3, Color("fff3cc"))
+	if actor.character_id in ["maestra_luz", "profe_nico"]:
+		# Adult clothing shares the animation rig and the original collision capsule.
+		var coat: bool = actor.character_id == "maestra_luz"
+		draw_style_box(box(primary, 3, 2), Rect2(-13, -48 + bend, 29, 38 if coat else 29))
+		draw_colored_polygon(PackedVector2Array([Vector2(-8, -48 + bend), Vector2(2, -36 + bend), Vector2(11, -48 + bend)]), Color("f4ecdc"))
+		if coat:
+			draw_line(Vector2(2, -36 + bend), Vector2(2, -13 + bend), dark, 2, true)
+			draw_rect(Rect2(-10, -28 + bend, 8, 8), dark)
+			draw_line(Vector2(-7, -28 + bend), Vector2(-7, -34 + bend), accent, 2)
+		else:
+			draw_colored_polygon(PackedVector2Array([Vector2(2, -44 + bend), Vector2(6, -38 + bend), Vector2(3, -24 + bend), Vector2(-1, -38 + bend)]), accent)
+		for i in 3: draw_circle(Vector2(6, -29 + bend + i * 6), 1.1, Color("f4ecdc"))
 	var hand := Vector2(12 - stride * 0.6, -24 + bend)
 	if actor.attack_time > 0:
 		hand = Vector2(37, -36 + bend)
@@ -124,6 +144,29 @@ func _draw() -> void:
 		draw_style_box(box(accent, 2, 1), Rect2(hand.x - 6, hand.y - 4, 9, 7))
 		if actor is CharacterBody2D and actor.radar_time > 0:
 			draw_arc(Vector2(0, -32), 35 + fmod(t * 95, 100), 0, TAU, 48, Color(accent, 0.5), 2, true)
+	if actor.character_id == "maestra_luz":
+		draw_circle(Vector2(-12, -75 + bend), 9, INK)
+		draw_circle(Vector2(-12, -75 + bend), 7, hair)
+		draw_line(Vector2(-9, -75 + bend), Vector2(7, -79 + bend), accent, 2.5, true)
+		draw_rect(Rect2(-24, -43 + bend, 15, 20), Color("28394c"))
+		draw_rect(Rect2(-21, -40 + bend, 12, 16), Color("f4dfb5"))
+	elif actor.character_id == "profe_nico":
+		draw_colored_polygon(PackedVector2Array([Vector2(-5, -53 + bend), Vector2(1, -48 + bend), Vector2(14, -52 + bend), Vector2(11, -43 + bend), Vector2(2, -42 + bend), Vector2(-5, -46 + bend)]), hair)
+		draw_line(Vector2(2, -48 + bend), Vector2(8, -48 + bend), INK, 1.5, true)
+	if actor.character_id in ["maestra_luz", "profe_nico"]:
+		for eye_x in [4, 11]: draw_arc(Vector2(eye_x, -59 + bend), 4, 0, TAU, 16, Color("d5ebf6"), 1.6, true)
+		draw_line(Vector2(7, -59 + bend), Vector2(8, -59 + bend), INK, 1.2, true)
+		if actor is CharacterBody2D and actor.radar_time > 0:
+			draw_arc(Vector2(0, -32), 35 + fmod(t * 95, 100), 0, TAU, 48, Color(accent, 0.5), 2, true)
+	var accessory := str(outfit.get("accessory", ""))
+	if accessory in Progress.data.purchases or previewing:
+		if accessory == "cap":
+			draw_arc(Vector2(2, -68 + bend), 15, PI, TAU, 20, accent, 9, true)
+			draw_line(Vector2(-10, -69 + bend), Vector2(25, -69 + bend), INK, 5, true)
+			draw_line(Vector2(-10, -70 + bend), Vector2(25, -70 + bend), accent, 3, true)
+		elif accessory == "scarf":
+			draw_line(Vector2(-8, -45 + bend), Vector2(12, -45 + bend), Color("f7ca78"), 7, true)
+			draw_polyline(PackedVector2Array([Vector2(-6, -45 + bend), Vector2(-21, -38 + bend), Vector2(-35, -43 + bend + sin(t * 8) * 4)]), Color("f7ca78"), 7, true)
 	if Progress.data.shield:
 		draw_arc(Vector2(0, -36), 43, 0, TAU, 48, Color(0.4, 0.95, 0.93, 0.5 + 0.2 * sin(t * 4)), 2, true)
 	draw_set_transform(Vector2.ZERO)

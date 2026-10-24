@@ -1,6 +1,13 @@
-param([string]$Godot = 'C:\Users\uriel\Downloads\Godot_v4.7.2-stable_win64_console.exe', [switch]$Routes, [switch]$Combat, [switch]$Expansion, [switch]$Matrix, [switch]$Remaster, [switch]$Fixes, [switch]$Mejoras)
+param([string]$Godot = '', [switch]$Routes, [switch]$Combat, [switch]$Expansion, [switch]$Matrix, [switch]$Remaster, [switch]$Fixes, [switch]$Mejoras, [switch]$Incentives, [switch]$Music)
 $ErrorActionPreference = 'Stop'
-if ($Mejoras) {
+. (Join-Path $PSScriptRoot 'godot_path.ps1')
+$Godot = Resolve-Godot -Requested $Godot -Console
+if (-not $Godot) { throw 'Godot not found. Use -Godot, GODOT or PATH.' }
+if ($Music) {
+    python (Join-Path $PSScriptRoot 'check.py') --godot $Godot --music
+} elseif ($Incentives) {
+    python (Join-Path $PSScriptRoot 'check.py') --godot $Godot --incentives
+} elseif ($Mejoras) {
     python (Join-Path $PSScriptRoot 'check.py') --godot $Godot --mejoras
 } elseif ($Fixes) {
     python (Join-Path $PSScriptRoot 'check.py') --godot $Godot --fixes

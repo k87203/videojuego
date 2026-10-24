@@ -447,9 +447,10 @@ func hit(source: String = "attack") -> bool:
 	if life <= 0:
 		dead = true
 		if uid != "": world.defeated_ids[uid] = true
-		Progress.data.score += 150
+		var paid := Progress.award_score(uid, 150)
+		if paid: Progress.save_game()
 		world.enemies_defeated += 1
-		world.fx.floating(position + Vector2(0, -45), "+150")
+		if paid: world.fx.floating(position + Vector2(0, -45), "+150")
 		queue_free()
 	return true
 

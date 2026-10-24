@@ -1,16 +1,18 @@
-param([int]$Level = 0, [int]$Position = 180, [string]$Name = 'menu', [string]$Character = 'alex', [switch]$Characters, [switch]$Graduation, [switch]$Exported, [switch]$Walk)
+param([int]$Level = 0, [int]$Position = 180, [string]$Name = 'menu', [string]$Character = 'alex', [switch]$Characters, [switch]$Graduation, [switch]$Exported, [switch]$Walk, [string]$Godot = '')
 $ErrorActionPreference = 'Stop'
 $projectDir = Split-Path $PSScriptRoot -Parent
-$godotExe = 'C:\Users\uriel\Downloads\Godot_v4.7.2-stable_win64_console.exe'
+. (Join-Path $PSScriptRoot 'godot_path.ps1')
+$godotExe = Resolve-Godot -Requested $Godot -Console
+if (-not $Exported -and -not $godotExe) { throw 'Godot not found. Use -Godot, GODOT or PATH.' }
 $capturePath = Join-Path $projectDir "docs\$Name.png"
-$arguments = @('--path', $projectDir, '--', '--test', "--capture=$capturePath", '--capture-at=180')
+$arguments = @('--path', ('"' + $projectDir + '"'), '--', '--test', ('--capture="' + $capturePath + '"'), '--capture-at=180')
 if ($Walk) {
     if ($Exported) { throw 'The moving probe is a source-only test scene.' }
-    $arguments = @('--path', $projectDir, 'res://tests/render_walk.tscn', '--', '--test', "--capture=$capturePath", '--capture-at=720')
+    $arguments = @('--path', ('"' + $projectDir + '"'), 'res://tests/render_walk.tscn', '--', '--test', ('--capture="' + $capturePath + '"'), '--capture-at=720')
 }
 if ($Exported) {
-    $godotExe = Join-Path $projectDir 'build\Windows\TECNO_AVENTURA_III_0.4.1.exe'
-    $arguments = @('--', '--test', "--capture=$capturePath", '--capture-at=180')
+    $godotExe = Join-Path $projectDir 'build\Windows\TECNO_AVENTURA_III.exe'
+    $arguments = @('--', '--test', ('--capture="' + $capturePath + '"'), '--capture-at=180')
 }
 if ($Level -gt 0) { $arguments += "--level=$Level"; $arguments += "--position=$Position" }
 if ($Graduation) { $arguments += '--graduation' }

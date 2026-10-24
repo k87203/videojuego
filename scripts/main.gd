@@ -63,6 +63,9 @@ func _ready() -> void:
 	if "--characters" in args: character_select(false)
 	if capture_path != "" and is_instance_valid(world): world.player.invulnerable = 999
 	if "--graduation" in args: graduation()
+	for arg in args:
+		if arg.begins_with("--collection="): preload("res://scripts/campus_collection.gd").build(self, arg.trim_prefix("--collection="))
+	if "--paused" in args and is_instance_valid(world): pause_game()
 
 func clear_ui() -> void:
 	hud.clear()
@@ -138,7 +141,8 @@ func _new_game_request() -> void:
 		screen = "confirm"
 		panel(ui, Rect2(340, 185, 600, 335))
 		label(ui, "Una nueva aventura", Rect2(380, 220, 520, 45), 32, GOLD)
-		label(ui, "Se reemplazará el progreso de la partida actual.", Rect2(380, 290, 520, 65), 20)
+		var warning := label(ui, "Reinicia la campaña. Conservas monedas, compras, reliquias, récords y logros.", Rect2(380, 290, 520, 80), 18)
+		warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button(ui, "Nueva partida", Rect2(380, 390, 250, 55), func():
 			Progress.new_game()
 			character_select(true), true)
@@ -152,31 +156,35 @@ func character_select(new_adventure: bool = false) -> void:
 	screen = "characters"
 	var definitions = preload("res://scripts/characters.gd")
 	panel(ui, Rect2(30, 28, 1220, 658), Color(0.04, 0.1, 0.18, 0.97), 24)
-	label(ui, "ELIGE TU ESTUDIANTE", Rect2(58, 51, 1100, 30), 17, TEAL)
-	label(ui, "Cuatro formas de llegar al título", Rect2(58, 95, 1160, 58), 40, GOLD)
-	label(ui, "Todos pueden completar la aventura. Q o LB activa la habilidad de cada estudiante.", Rect2(60, 159, 1160, 33), 19, Color("b9d2da"))
-	for i in 4:
+	label(ui, "ELIGE TU PERSONAJE", Rect2(58, 46, 850, 30), 17, TEAL)
+	label(ui, "Tu lugar en el campus", Rect2(58, 81, 850, 55), 36, GOLD)
+	label(ui, "Cuatro estudiantes y dos maestros desbloqueables. Q / LB: habilidad.", Rect2(60, 137, 1120, 30), 17, Color("b9d2da"))
+	button(ui, "Ir a la tienda", Rect2(1000, 83, 205, 42), collection)
+	for i in definitions.IDS.size():
 		var id: String = definitions.IDS[i]
 		var spec: Dictionary = definitions.spec(id)
-		var x := 54.0 + i * 296
-		panel(ui, Rect2(x, 220, 282, 345), Color("365c69") if Progress.data.character == id else Color("203b54"), 17)
-		label(ui, spec.name, Rect2(x + 18, 233, 246, 37), 29, Color(spec.accent))
-		label(ui, spec.role, Rect2(x + 18, 275, 246, 23), 12, TEAL)
+		var available: bool = Progress.character_available(id)
+		var x: float = 54.0 + (i % 3) * 395
+		var y: float = 181.0 + int(i / 3) * 220
+		panel(ui, Rect2(x, y, 376, 207), Color("365c69") if Progress.data.character == id else Color("203b54"), 17)
+		label(ui, spec.name, Rect2(x + 122, y + 14, 240, 32), 24, Color(spec.accent))
+		label(ui, spec.role, Rect2(x + 122, y + 49, 240, 23), 12, TEAL)
 		var portrait := Node2D.new()
 		portrait.set_script(preload("res://scripts/menu_actor.gd"))
 		portrait.character_id = id
-		portrait.position = Vector2(x + 142, 458)
-		portrait.scale = Vector2(1.85, 1.85)
+		portrait.position = Vector2(x + 62, y + 171)
+		portrait.scale = Vector2(1.45, 1.45)
 		portrait.facing = 1
 		portrait.celebrating = false
 		ui.add_child(portrait)
-		var description := label(ui, spec.description, Rect2(x + 18, 470, 245, 76), 17)
+		var description := label(ui, spec.description, Rect2(x + 122, y + 80, 240, 65), 15)
 		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button(ui, "✓ Seleccionado" if Progress.data.character == id else "Elegir " + spec.name, Rect2(x, 578, 282, 46), func():
-			Progress.data.character = id
-			Progress.data.shield = id == "diego"
-			Progress.save_game()
-			character_select(new_adventure), Progress.data.character == id)
+		var caption := "✓ Seleccionado" if Progress.data.character == id else "Elegir"
+		if not available: caption = "En tienda · %d monedas" % int(Progress.SHOP[id].price)
+		var choose := button(ui, caption, Rect2(x + 122, y + 157, 240, 37), func():
+			if Progress.select_character(id): character_select(new_adventure), Progress.data.character == id)
+		choose.disabled = not available
+		choose.set_meta("character_choice", id)
 	button(ui, "Comenzar aventura →" if new_adventure else "Guardar y volver →", Rect2(54, 638, 1170, 37), func():
 		if new_adventure: start_level(1)
 		else: show_menu(), true).grab_focus()
@@ -290,7 +298,7 @@ func _process(delta: float) -> void:
 		if not hud.is_empty():
 			hud.hearts.set_counts(maxi(0, world.player.health), world.player.max_health)
 			hud.lives.text = "%d VIDAS" % int(Progress.data.lives)
-			hud.credits.text = "%03d" % int(Progress.data.credits)
+			hud.credits.text = "%03d" % int(Progress.data.wallet)
 			hud.score.text = "%06d PUNTOS" % int(Progress.data.score)
 			hud.usb.text = "%d/8" % Progress.data.usb.size()
 			hud.docs.text = "TÍTULO %d/4" % Progress.data.fragments.size()
@@ -343,7 +351,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause"):
 		if screen == "playing": pause_game()
 		elif screen == "pause": resume_game()
-		elif screen in ["levels", "settings", "confirm", "characters"]: show_menu() if not is_instance_valid(world) else pause_game()
+		elif screen in ["levels", "settings", "confirm", "characters", "collection"]: show_menu() if not is_instance_valid(world) else pause_game()
 		get_viewport().set_input_as_handled()
 	if event.is_action_pressed("restart") and screen == "game_over": retry_level()
 
@@ -363,17 +371,23 @@ func pause_game() -> void:
 	get_tree().paused = true
 	clear_ui()
 	panel(ui, Rect2(0, 0, 1280, 720), Color(0.03, 0.08, 0.14, 0.6), 0)
-	panel(ui, Rect2(410, 123, 460, 474))
-	label(ui, "RESPIRA. VAS BIEN.", Rect2(451, 157, 400, 30), 17, TEAL)
-	label(ui, "Pausa", Rect2(450, 198, 370, 60), 45, GOLD)
-	button(ui, "Seguir aventura", Rect2(450, 287, 380, 54), resume_game, true).grab_focus()
-	button(ui, "Audio y controles", Rect2(450, 358, 380, 52), func(): settings("pause"))
-	button(ui, "Reiniciar nivel", Rect2(450, 429, 380, 52), func(): start_level(world.level_id))
-	button(ui, "Guardar y volver al menú", Rect2(450, 500, 380, 52), func():
+	panel(ui, Rect2(370, 62, 540, 594))
+	label(ui, "RESPIRA. VAS BIEN.", Rect2(410, 89, 460, 27), 17, TEAL)
+	label(ui, "Pausa", Rect2(410, 122, 460, 55), 43, GOLD)
+	button(ui, "Seguir aventura", Rect2(410, 192, 460, 49), resume_game, true).grab_focus()
+	label(ui, "Música", Rect2(410, 263, 140, 30), 20)
+	audio_slider(0, Rect2(568, 267, 300, 25))
+	label(ui, "Efectos", Rect2(410, 311, 140, 30), 20)
+	audio_slider(1, Rect2(568, 315, 300, 25))
+	audio_mute_button(Rect2(410, 363, 460, 43))
+	button(ui, "Controles y audio", Rect2(410, 421, 460, 43), func(): settings("pause"))
+	button(ui, "Reiniciar nivel", Rect2(410, 479, 460, 43), func(): start_level(world.level_id))
+	button(ui, "Guardar y volver al menú", Rect2(410, 537, 460, 49), func():
 		world.save_snapshot()
 		show_menu())
 
 func resume_game() -> void:
+	Progress.save_game()
 	get_tree().paused = false
 	screen = "playing"
 	build_hud()
@@ -385,22 +399,38 @@ func settings(origin: String) -> void:
 	label(ui, "Hazlo a tu ritmo", Rect2(274, 111, 700, 48), 37, GOLD)
 	for i in 2:
 		label(ui, ["Música", "Efectos"][i], Rect2(280, 198 + i * 70, 220, 32), 23)
-		var slider := HSlider.new()
-		slider.position = Vector2(510, 208 + i * 70)
-		slider.size = Vector2(460, 24)
-		slider.min_value = 0
-		slider.max_value = 100
-		slider.value = (Progress.music_volume if i == 0 else Progress.effects_volume) * 100
-		if i == 0:
-			slider.value_changed.connect(func(v): Progress.music_volume = v / 100.0; Sound.apply_volume())
-		else:
-			slider.value_changed.connect(func(v): Progress.effects_volume = v / 100.0; Sound.apply_volume())
-		ui.add_child(slider)
+		audio_slider(i, Rect2(510, 208 + i * 70, 460, 24))
+	audio_mute_button(Rect2(280, 318, 720, 36))
 	label(ui, "A / D o flechas · Mover     Espacio / W · Saltar\nShift · Correr     S / ↓ · Deslizarse     Q / C · Habilidad\nJ / X · Atacar     E / Enter · Interactuar     Esc · Pausa\nMando: A salto · X ataque · Y interactuar · RB correr · LB habilidad", Rect2(280, 354, 720, 144), 18, Color("bdced7"))
 	button(ui, "Guardar y volver", Rect2(280, 541, 720, 53), func():
 		Progress.save_game()
 		if origin == "pause": pause_game()
 		else: show_menu(), true).grab_focus()
+
+func audio_slider(kind: int, rect: Rect2) -> HSlider:
+	var slider := HSlider.new()
+	slider.position = rect.position
+	slider.size = rect.size
+	slider.min_value = 0
+	slider.max_value = 100
+	slider.step = 1
+	slider.value = (Progress.music_volume if kind == 0 else Progress.effects_volume) * 100
+	slider.set_meta("audio_volume", "music" if kind == 0 else "effects")
+	slider.value_changed.connect(func(value):
+		if kind == 0: Progress.music_volume = value / 100.0
+		else: Progress.effects_volume = value / 100.0
+		Sound.apply_volume())
+	slider.drag_ended.connect(func(_changed): Progress.save_game())
+	slider.focus_exited.connect(Progress.save_game)
+	ui.add_child(slider)
+	return slider
+
+func audio_mute_button(rect: Rect2) -> void:
+	var mute := button(ui, "Activar sonido" if Progress.audio_muted else "Silenciar todo", rect, func():
+		Sound.toggle_mute()
+		for child in ui.get_children():
+			if child.has_meta("audio_mute"): child.text = "Activar sonido" if Progress.audio_muted else "Silenciar todo")
+	mute.set_meta("audio_mute", true)
 
 func level_select() -> void:
 	screen = "levels"
@@ -420,6 +450,9 @@ func level_select() -> void:
 		label(ui, "MEJOR: " + str(Progress.data.best.get(str(level), "—")), Rect2(125 + i * 272, 506, 215, 26), 14, TEAL)
 	button(ui, "← Volver", Rect2(108, 566, 1036, 46), show_menu).grab_focus()
 
+func collection() -> void:
+	preload("res://scripts/campus_collection.gd").build(self)
+
 func quiz(terminal) -> void:
 	get_tree().paused = true
 	screen = "quiz"
@@ -437,7 +470,7 @@ func quiz(terminal) -> void:
 		quiz_buttons.append(button(ui, str(answer) + " bits", Rect2(290 + i * 238, 357, 220, 65), func():
 			if answer == QUIZ_ANSWER:
 				terminal.active = true
-				Progress.credit(10)
+				Progress.credit(10, Progress.reward_id(world.level_id, terminal.position.x, "quiz"))
 				Progress.data.shield = true
 				world.save_snapshot()
 				Sound.sfx("power")
@@ -475,7 +508,8 @@ func results(grade: String) -> void:
 	label(ui, grade, Rect2(355, 277, 90, 90), 72, GOLD)
 	label(ui, "CALIFICACIÓN", Rect2(334, 371, 120, 23), 11, TEAL)
 	label(ui, "Créditos recuperados    %d\nEnemigos superados     %d\nSecretos encontrados   %d / 2\nTiempo   %02d:%02d" % [world.level_credits, world.enemies_defeated, world.secrets, int(world.level_time) / 60, int(world.level_time) % 60], Rect2(488, 268, 425, 145), 21)
-	label(ui, "Fragmento recuperado. Tu progreso está guardado.", Rect2(326, 443, 640, 32), 18, Color("b8ced7"))
+	var best_time := float(Progress.data.times.get(str(world.level_id), world.level_time))
+	label(ui, "MEJOR %s · %02d:%02d · RELIQUIAS %d/3" % [str(Progress.data.best.get(str(world.level_id), grade)), int(best_time) / 60, int(best_time) % 60, Progress.relic_count(world.level_id)], Rect2(326, 443, 640, 32), 18, Color("b8ced7"))
 	button(ui, "Graduarme  →" if world.level_id == 4 else "Siguiente nivel  →", Rect2(325, 522, 380, 58), func():
 		if world.level_id == 4: graduation()
 		else: start_level(world.level_id + 1), true).grab_focus()

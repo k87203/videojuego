@@ -84,7 +84,9 @@ func _physics_process(delta: float) -> void:
 	if summon_time > 0:
 		summon_time -= delta
 		if summon_time <= 0:
-			world.spawn_enemy("virus" if phase == 3 else "task", summon_position)
+			var minion = world.spawn_enemy("virus" if phase == 3 else "task", summon_position)
+			# One reward per boss/phase, independent of the moving summon point.
+			minion.uid = Progress.reward_id(world.level_id, home.x, "minion_phase%d" % phase)
 			world.fx.burst(summon_position + Vector2(0, -30), Color("b8a1ff"), 14)
 	if dash_time > 0:
 		dash_time = maxf(0, dash_time - delta)
@@ -146,7 +148,7 @@ func hit() -> bool:
 		summon_time = 0
 		windup = 0
 		dash_time = 0
-		Progress.data.score += 1500 if miniboss else 4000
+		Progress.award_score(Progress.reward_id(world.level_id, home.x, "boss"), 1500 if miniboss else 4000)
 		world.boss_defeated()
 	return true
 
